@@ -7,6 +7,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
+import DocumentManager from '../../components/documents/DocumentManager';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const STATUS_OPTIONS = ['ACTIVE', 'ALUMNI', 'EXPELLED', 'TRANSFERRED'];
@@ -16,6 +17,7 @@ export default function StudentsList() {
   const [structure, setStructure] = useState({ batches: [], sections: [] });
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [docsFor, setDocsFor] = useState(null);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ createPortalAccount: true });
   const [error, setError] = useState('');
@@ -131,7 +133,12 @@ export default function StudentsList() {
                   <td className="px-4 py-3 text-sm">{s.currentSection?.name || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{s.user?.email || '—'}</td>
                   <td className="px-4 py-3"><Badge variant="success">{s.status}</Badge></td>
-                  <td className="px-4 py-3"><RowActions onEdit={() => openEdit(s)} onDelete={() => handleDelete(s)} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" className="px-2 py-1 text-xs" onClick={() => setDocsFor(s)}>Documents</Button>
+                      <RowActions onEdit={() => openEdit(s)} onDelete={() => handleDelete(s)} />
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -176,6 +183,12 @@ export default function StudentsList() {
             <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Student' : 'Create Student'}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!docsFor} onClose={() => setDocsFor(null)} title={`Documents — ${docsFor?.firstName} ${docsFor?.lastName}`} wide>
+        {docsFor && (
+          <DocumentManager personType="student" personId={docsFor.id} mode="admin" />
+        )}
       </Modal>
     </>
   );

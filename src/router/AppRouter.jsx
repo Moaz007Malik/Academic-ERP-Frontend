@@ -37,6 +37,8 @@ import StudentResults from '../portals/Student/Results';
 import StudentAttendance from '../portals/Student/Attendance';
 import StudentFees from '../portals/Student/Fees';
 import StudentTimetable from '../portals/Student/Timetable';
+import StudentDocuments from '../portals/Student/Documents';
+import TeacherDocuments from '../portals/Teacher/Documents';
 import ParentDashboard from '../portals/Parent/Dashboard';
 
 function RootRedirect() {
@@ -111,6 +113,7 @@ export default function AppRouter() {
         <Route path="attendance" element={<TeacherAttendance />} />
         <Route path="marks" element={<TeacherMarks />} />
         <Route path="students" element={<TeacherStudents />} />
+        <Route path="documents" element={<TeacherDocuments />} />
       </Route>
 
       <Route path="/student" element={
@@ -124,6 +127,7 @@ export default function AppRouter() {
         <Route path="attendance" element={<StudentAttendance />} />
         <Route path="fees" element={<StudentFees />} />
         <Route path="timetable" element={<StudentTimetable />} />
+        <Route path="documents" element={<StudentDocuments />} />
       </Route>
 
       <Route path="/parent" element={

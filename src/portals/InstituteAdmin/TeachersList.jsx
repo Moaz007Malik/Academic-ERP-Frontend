@@ -7,6 +7,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
+import DocumentManager from '../../components/documents/DocumentManager';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'RESIGNED'];
@@ -18,6 +19,7 @@ export default function TeachersList() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [assignOpen, setAssignOpen] = useState(null);
+  const [docsFor, setDocsFor] = useState(null);
   const [form, setForm] = useState({ createPortalAccount: true });
   const [assignForm, setAssignForm] = useState({});
   const [error, setError] = useState('');
@@ -140,6 +142,7 @@ export default function TeachersList() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="success">{t.status}</Badge>
                   <Button variant="secondary" className="text-xs" onClick={() => { setAssignOpen(t); setError(''); }}>Assign</Button>
+                  <Button variant="ghost" className="text-xs" onClick={() => setDocsFor(t)}>Documents</Button>
                   <RowActions onEdit={() => openEdit(t)} onDelete={() => handleDelete(t)} />
                 </div>
               </div>
@@ -199,6 +202,12 @@ export default function TeachersList() {
           </Select>
           <Button type="submit" disabled={assigning}>{assigning ? 'Assigning...' : 'Assign'}</Button>
         </form>
+      </Modal>
+
+      <Modal open={!!docsFor} onClose={() => setDocsFor(null)} title={`Documents — ${docsFor?.firstName} ${docsFor?.lastName}`} wide>
+        {docsFor && (
+          <DocumentManager personType="teacher" personId={docsFor.id} mode="admin" />
+        )}
       </Modal>
     </>
   );
