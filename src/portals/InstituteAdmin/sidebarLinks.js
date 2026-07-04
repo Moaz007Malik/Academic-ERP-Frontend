@@ -6,6 +6,7 @@ export const ADMIN_SIDEBAR_LINKS = [
   { to: '/admin/academic', label: 'Academic Setup', module: MODULE_KEYS.STUDENT_MANAGEMENT },
   { to: '/admin/students', label: 'Students', module: MODULE_KEYS.STUDENT_MANAGEMENT },
   { to: '/admin/teachers', label: 'Teachers', module: MODULE_KEYS.TEACHER_MANAGEMENT },
+  { to: '/admin/individual-courses', label: 'Individual Courses', module: MODULE_KEYS.INDIVIDUAL_COURSES },
   { to: '/admin/credentials', label: 'Portal Logins', roles: ['INSTITUTE_ADMIN'] },
   { to: '/admin/exams', label: 'Exams', module: MODULE_KEYS.RESULTS_EXAMS },
   { to: '/admin/results', label: 'Results', module: MODULE_KEYS.RESULTS_EXAMS },

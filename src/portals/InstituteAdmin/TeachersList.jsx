@@ -141,7 +141,9 @@ export default function TeachersList() {
             <div key={t.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold">{t.firstName} {t.lastName}</h3>
+                  <h3 className="font-semibold">
+                    <Link to={`/admin/teachers/${t.id}`} className="hover:text-primary-700">{t.firstName} {t.lastName}</Link>
+                  </h3>
                   <p className="text-sm text-gray-500">{t.employeeCode} · {t.user?.email || 'No portal account'}</p>
                   {t.user?.portalPassword && (
                     <p className="text-sm font-mono text-gray-600">Password: {t.user.portalPassword}</p>

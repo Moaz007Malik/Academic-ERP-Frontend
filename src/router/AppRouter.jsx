@@ -19,7 +19,12 @@ import InstituteAdminLayout from '../portals/InstituteAdmin/InstituteAdminLayout
 import InstituteAdminDashboard from '../portals/InstituteAdmin/Dashboard';
 import AcademicSetup from '../portals/InstituteAdmin/AcademicSetup';
 import StudentsList from '../portals/InstituteAdmin/StudentsList';
+import StudentDetail from '../portals/InstituteAdmin/StudentDetail';
 import TeachersList from '../portals/InstituteAdmin/TeachersList';
+import TeacherDetail from '../portals/InstituteAdmin/TeacherDetail';
+import IndividualCoursesList from '../portals/InstituteAdmin/IndividualCoursesList';
+import IndividualCourseDetail from '../portals/InstituteAdmin/IndividualCourseDetail';
+import ExamDetail from '../portals/InstituteAdmin/ExamDetail';
 import ExamsPage from '../portals/InstituteAdmin/ExamsPage';
 import ResultsPage from '../portals/InstituteAdmin/ResultsPage';
 import AttendancePage from '../portals/InstituteAdmin/AttendancePage';
@@ -112,7 +117,12 @@ export default function AppRouter() {
         <Route index element={<InstituteAdminDashboard />} />
         <Route path="academic" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><AcademicSetup /></Mod>} />
         <Route path="students" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><StudentsList /></Mod>} />
+        <Route path="students/:id" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><StudentDetail /></Mod>} />
         <Route path="teachers" element={<Mod moduleKey={MODULE_KEYS.TEACHER_MANAGEMENT}><TeachersList /></Mod>} />
+        <Route path="teachers/:id" element={<Mod moduleKey={MODULE_KEYS.TEACHER_MANAGEMENT}><TeacherDetail /></Mod>} />
+        <Route path="individual-courses" element={<Mod moduleKey={MODULE_KEYS.INDIVIDUAL_COURSES}><IndividualCoursesList /></Mod>} />
+        <Route path="individual-courses/:id" element={<Mod moduleKey={MODULE_KEYS.INDIVIDUAL_COURSES}><IndividualCourseDetail /></Mod>} />
+        <Route path="exams/:id" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ExamDetail /></Mod>} />
         <Route path="credentials" element={
           <AuthGuard allowedRoles={['INSTITUTE_ADMIN']}>
             <PortalLogins />

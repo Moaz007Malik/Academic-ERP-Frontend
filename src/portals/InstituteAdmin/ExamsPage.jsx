@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import PageTitle from '../../components/layout/PageTitle';
 import Button from '../../components/common/Button';
@@ -138,11 +139,14 @@ export default function ExamsPage() {
                   <div className="flex items-center gap-1">
                     {!ex.isPublished && (
                       <>
+                        <Link to={`/admin/exams/${ex.id}`}><Button variant="ghost" className="px-2 py-1 text-xs">View</Button></Link>
                         <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => publish(ex.id)}>Publish</Button>
                         <RowActions onEdit={() => openEdit(ex)} onDelete={() => handleDelete(ex)} />
                       </>
                     )}
-                    {ex.isPublished && <span className="text-xs text-gray-400">Locked</span>}
+                    {ex.isPublished && (
+                      <Link to={`/admin/exams/${ex.id}`}><Button variant="ghost" className="px-2 py-1 text-xs">View</Button></Link>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -1,8 +1,10 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import api from '../../services/api';
 import PageTitle from '../../components/layout/PageTitle';
 import Badge from '../../components/common/Badge';
+import Button from '../../components/common/Button';
 
 function KpiCard({ label, value, suffix = '' }) {
   return (
@@ -49,7 +51,8 @@ export default function InstituteAdminDashboard() {
       {loading ? (
         <p className="text-gray-500">Loading dashboard...</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <>
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <KpiCard label="Total Students" value={stats?.totalStudents} />
           <KpiCard label="Total Teachers" value={stats?.totalTeachers} />
           <KpiCard label="Present Today" value={stats?.todayAttendance} />
@@ -58,6 +61,19 @@ export default function InstituteAdminDashboard() {
           <KpiCard label="Upcoming Exams (7d)" value={stats?.upcomingExams} />
           <KpiCard label="Open Tickets" value={stats?.openTickets} />
         </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <h3 className="mb-3 text-sm font-semibold text-gray-700">Quick Actions</h3>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/admin/students"><Button variant="secondary" className="text-sm">Students</Button></Link>
+            <Link to="/admin/teachers"><Button variant="secondary" className="text-sm">Teachers</Button></Link>
+            <Link to="/admin/individual-courses"><Button variant="secondary" className="text-sm">Individual Courses</Button></Link>
+            <Link to="/admin/attendance"><Button variant="secondary" className="text-sm">Attendance</Button></Link>
+            <Link to="/admin/fees"><Button variant="secondary" className="text-sm">Fees</Button></Link>
+            <Link to="/admin/exams"><Button variant="secondary" className="text-sm">Exams</Button></Link>
+            <Link to="/admin/subscription"><Button variant="secondary" className="text-sm">Subscription</Button></Link>
+          </div>
+        </div>
+        </>
       )}
     </>
   );

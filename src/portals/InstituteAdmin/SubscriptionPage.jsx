@@ -80,8 +80,46 @@ export default function SubscriptionPage() {
             )}
           </div>
 
-          <p className="text-xs text-gray-500">
-            Module access is managed by the Super Administrator. Use &quot;View modules&quot; to see which features are enabled for your institute.
+      {sub?.warning && sub.warning !== 'PENDING' && (
+        <div className={`mb-6 rounded-xl border p-4 ${
+          ['OVERDUE_BLOCKED', 'OVERDUE_GRACE', 'DUE_TODAY'].includes(sub.warning)
+            ? 'border-red-300 bg-red-50 text-red-800'
+            : 'border-amber-300 bg-amber-50 text-amber-900'
+        }`}>
+          <p className="font-semibold">{sub.warningMessage}</p>
+          {sub.pendingInvoice?.dueDate && (
+            <p className="mt-1 text-sm">Due date: {new Date(sub.pendingInvoice.dueDate).toLocaleDateString()}</p>
+          )}
+        </div>
+      )}
+
+      {sub?.warning === 'PENDING' && sub.dueAmount > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+          <p className="font-semibold">{sub.warningMessage}</p>
+        </div>
+      )}
+
+      {sub?.recentInvoices?.length > 0 && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 font-semibold">Invoice History</h3>
+          <table className="min-w-full text-sm">
+            <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="pb-2">Invoice</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
+            <tbody>
+              {sub.recentInvoices.map((inv) => (
+                <tr key={inv.id} className="border-b border-gray-100">
+                  <td className="py-2 font-mono text-xs">{inv.invoiceNumber}</td>
+                  <td>{Number(inv.amount).toLocaleString()} PKR</td>
+                  <td>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : '—'}</td>
+                  <td><Badge variant={inv.status === 'PAID' ? 'success' : 'warning'}>{inv.status}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+          <p className="mt-6 text-xs text-gray-500">
+            Module access is managed by the Super Administrator.
           </p>
         </>
       )}
