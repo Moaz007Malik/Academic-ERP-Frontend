@@ -81,6 +81,7 @@ const authSlice = createSlice({
           ...action.payload.user,
           modules: action.payload.user.modules ?? [],
           instituteStatus: action.payload.user.instituteStatus,
+          instituteLogo: action.payload.user.instituteLogo ?? null,
           subscriptionExpired: action.payload.user.subscriptionExpired ?? false,
           portalRoute: action.payload.user.portalRoute,
         };
@@ -98,6 +99,7 @@ const authSlice = createSlice({
             ...action.payload,
             modules: action.payload.modules ?? [],
             instituteStatus: action.payload.instituteStatus ?? action.payload.institute?.status,
+            instituteLogo: action.payload.instituteLogo ?? action.payload.institute?.logo ?? null,
             subscriptionExpired: action.payload.subscriptionExpired ?? false,
             portalRoute: action.payload.portalRoute ?? getPortalRouteForRole(action.payload.role),
             instituteName: action.payload.instituteName ?? action.payload.institute?.name,
@@ -114,6 +116,7 @@ const authSlice = createSlice({
         state.user = {
           ...action.payload,
           instituteStatus: action.payload.instituteStatus ?? action.payload.institute?.status,
+          instituteLogo: action.payload.instituteLogo ?? action.payload.institute?.logo ?? state.user?.instituteLogo,
           subscriptionExpired: action.payload.subscriptionExpired ?? false,
         };
         state.isAuthenticated = true;

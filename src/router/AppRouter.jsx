@@ -28,6 +28,7 @@ import SubscriptionPage from '../portals/InstituteAdmin/SubscriptionPage';
 import TicketsPage from '../portals/InstituteAdmin/TicketsPage';
 import TicketDetail from '../portals/InstituteAdmin/TicketDetail';
 import ProfileSettings from '../portals/InstituteAdmin/ProfileSettings';
+import PortalLogins from '../portals/InstituteAdmin/PortalLogins';
 import IdCardPage from '../portals/InstituteAdmin/IdCardPage';
 import ReportsPage from '../portals/InstituteAdmin/ReportsPage';
 import TeacherLayout from '../portals/Teacher/TeacherLayout';
@@ -112,6 +113,11 @@ export default function AppRouter() {
         <Route path="academic" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><AcademicSetup /></Mod>} />
         <Route path="students" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><StudentsList /></Mod>} />
         <Route path="teachers" element={<Mod moduleKey={MODULE_KEYS.TEACHER_MANAGEMENT}><TeachersList /></Mod>} />
+        <Route path="credentials" element={
+          <AuthGuard allowedRoles={['INSTITUTE_ADMIN']}>
+            <PortalLogins />
+          </AuthGuard>
+        } />
         <Route path="exams" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ExamsPage /></Mod>} />
         <Route path="results" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ResultsPage /></Mod>} />
         <Route path="attendance" element={<Mod moduleKey={MODULE_KEYS.ATTENDANCE}><AttendancePage /></Mod>} />

@@ -8,6 +8,7 @@ import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import DocumentManager from '../../components/documents/DocumentManager';
+import CredentialsRevealModal from '../../components/common/CredentialsRevealModal';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const STATUS_OPTIONS = ['ACTIVE', 'ALUMNI', 'EXPELLED', 'TRANSFERRED'];
@@ -21,6 +22,7 @@ export default function StudentsList() {
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ createPortalAccount: true });
   const [error, setError] = useState('');
+  const [revealedCreds, setRevealedCreds] = useState(null);
   const { submitting, run } = useAsyncSubmit();
 
   const load = () => {
@@ -75,7 +77,11 @@ export default function StudentsList() {
         if (editId) {
           await api.put(`/admin/students/${editId}`, form);
         } else {
-          await api.post('/admin/students', form);
+          const res = await api.post('/admin/students', form);
+          const creds = res.data.data?.portalCredentials;
+          if (creds?.email) {
+            setRevealedCreds(creds);
+          }
         }
         setOpen(false);
         setForm({ createPortalAccount: true });
@@ -114,16 +120,17 @@ export default function StudentsList() {
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Name</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Class</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Section</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Portal</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Portal Email</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Password</th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
             ) : students.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No students found</td></tr>
             ) : (
               students.map((s) => (
                 <tr key={s.id} className="hover:bg-gray-50">
@@ -132,6 +139,9 @@ export default function StudentsList() {
                   <td className="px-4 py-3 text-sm">{s.currentBatch?.name || '—'}</td>
                   <td className="px-4 py-3 text-sm">{s.currentSection?.name || '—'}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{s.user?.email || '—'}</td>
+                  <td className="px-4 py-3 text-sm font-mono text-gray-700">
+                    {s.user?.portalPassword || <span className="font-sans text-gray-400 italic">—</span>}
+                  </td>
                   <td className="px-4 py-3"><Badge variant="success">{s.status}</Badge></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
@@ -184,6 +194,14 @@ export default function StudentsList() {
           </div>
         </form>
       </Modal>
+
+      <CredentialsRevealModal
+        open={!!revealedCreds}
+        title="Student portal credentials"
+        email={revealedCreds?.email || ''}
+        password={revealedCreds?.password || ''}
+        onConfirm={() => setRevealedCreds(null)}
+      />
 
       <Modal open={!!docsFor} onClose={() => setDocsFor(null)} title={`Documents — ${docsFor?.firstName} ${docsFor?.lastName}`} wide>
         {docsFor && (

@@ -46,33 +46,6 @@ export default function InstituteAdminDashboard() {
           )}
         </div>
       )}
-      {stats?.modules && (
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Module Access Overview</h2>
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg bg-green-50 p-3 text-center">
-              <p className="text-xl font-bold text-green-700">{stats.modules.activeCount}</p>
-              <p className="text-xs text-green-800">Active Modules</p>
-            </div>
-            <div className="rounded-lg bg-amber-50 p-3 text-center">
-              <p className="text-xl font-bold text-amber-700">{stats.modules.disabledCount}</p>
-              <p className="text-xs text-amber-800">Disabled Modules</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3 text-center">
-              <p className="text-xl font-bold text-gray-700">{stats.modules.remainingCount}</p>
-              <p className="text-xs text-gray-600">Remaining Available</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {stats.modules.active?.slice(0, 12).map((m) => (
-              <span key={m.key} className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">{m.label}</span>
-            ))}
-            {stats.modules.activeCount > 12 && (
-              <span className="text-xs text-gray-500">+{stats.modules.activeCount - 12} more</span>
-            )}
-          </div>
-        </div>
-      )}
       {loading ? (
         <p className="text-gray-500">Loading dashboard...</p>
       ) : (

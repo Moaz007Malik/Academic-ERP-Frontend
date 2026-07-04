@@ -6,6 +6,7 @@ export const ADMIN_SIDEBAR_LINKS = [
   { to: '/admin/academic', label: 'Academic Setup', module: MODULE_KEYS.STUDENT_MANAGEMENT },
   { to: '/admin/students', label: 'Students', module: MODULE_KEYS.STUDENT_MANAGEMENT },
   { to: '/admin/teachers', label: 'Teachers', module: MODULE_KEYS.TEACHER_MANAGEMENT },
+  { to: '/admin/credentials', label: 'Portal Logins', roles: ['INSTITUTE_ADMIN'] },
   { to: '/admin/exams', label: 'Exams', module: MODULE_KEYS.RESULTS_EXAMS },
   { to: '/admin/results', label: 'Results', module: MODULE_KEYS.RESULTS_EXAMS },
   { to: '/admin/attendance', label: 'Attendance', module: MODULE_KEYS.ATTENDANCE },
@@ -33,6 +34,7 @@ export function getAdminSidebarLinks(user) {
 
   const modules = user.modules || [];
   return ADMIN_SIDEBAR_LINKS.filter((link) => {
+    if (link.roles && !link.roles.includes(user.role)) return false;
     if (!link.module) return true;
     return modules.includes(link.module);
   });

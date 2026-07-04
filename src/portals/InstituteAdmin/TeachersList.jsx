@@ -8,6 +8,7 @@ import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import DocumentManager from '../../components/documents/DocumentManager';
+import CredentialsRevealModal from '../../components/common/CredentialsRevealModal';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const STATUS_OPTIONS = ['ACTIVE', 'INACTIVE', 'RESIGNED'];
@@ -23,6 +24,7 @@ export default function TeachersList() {
   const [form, setForm] = useState({ createPortalAccount: true });
   const [assignForm, setAssignForm] = useState({});
   const [error, setError] = useState('');
+  const [revealedCreds, setRevealedCreds] = useState(null);
   const { submitting, run } = useAsyncSubmit();
   const { submitting: assigning, run: runAssign } = useAsyncSubmit();
 
@@ -75,7 +77,11 @@ export default function TeachersList() {
         if (editId) {
           await api.put(`/admin/teachers/${editId}`, form);
         } else {
-          await api.post('/admin/teachers', form);
+          const res = await api.post('/admin/teachers', form);
+          const creds = res.data.data?.portalCredentials;
+          if (creds?.email) {
+            setRevealedCreds(creds);
+          }
         }
         setOpen(false);
         setForm({ createPortalAccount: true });
@@ -137,6 +143,9 @@ export default function TeachersList() {
                 <div>
                   <h3 className="font-semibold">{t.firstName} {t.lastName}</h3>
                   <p className="text-sm text-gray-500">{t.employeeCode} · {t.user?.email || 'No portal account'}</p>
+                  {t.user?.portalPassword && (
+                    <p className="text-sm font-mono text-gray-600">Password: {t.user.portalPassword}</p>
+                  )}
                   <p className="text-sm text-gray-500">{t.qualification} {t.specialization && `· ${t.specialization}`}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -203,6 +212,14 @@ export default function TeachersList() {
           <Button type="submit" disabled={assigning}>{assigning ? 'Assigning...' : 'Assign'}</Button>
         </form>
       </Modal>
+
+      <CredentialsRevealModal
+        open={!!revealedCreds}
+        title="Teacher portal credentials"
+        email={revealedCreds?.email || ''}
+        password={revealedCreds?.password || ''}
+        onConfirm={() => setRevealedCreds(null)}
+      />
 
       <Modal open={!!docsFor} onClose={() => setDocsFor(null)} title={`Documents — ${docsFor?.firstName} ${docsFor?.lastName}`} wide>
         {docsFor && (

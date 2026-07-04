@@ -48,7 +48,7 @@ export default function CredentialsRevealModal({
 
         <div className="space-y-4 p-6">
           <p className="text-sm text-amber-800 bg-amber-50 rounded-lg px-3 py-2">
-            Save these credentials now. They will not be shown again.
+            Save these credentials. You can also view them later under Portal Logins.
           </p>
 
           <CredentialRow
