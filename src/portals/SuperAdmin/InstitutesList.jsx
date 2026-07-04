@@ -102,6 +102,9 @@ export default function InstitutesList() {
                   <td className="px-4 py-3 text-sm">{inst.expiryDate ? new Date(inst.expiryDate).toLocaleDateString() : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
+                      <Link to={`/sa/institutes/${inst.id}`}>
+                        <Button variant="ghost" className="!px-2 !py-1 text-xs">Modules</Button>
+                      </Link>
                       {inst.status !== 'ACTIVE' && (
                         <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={acting === inst.id}
                           onClick={() => handleAction(inst.id, 'activate')}>Activate</Button>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import PageTitle from '../../components/layout/PageTitle';
 import Badge from '../../components/common/Badge';
@@ -84,6 +85,7 @@ export default function TicketsPage() {
               </div>
               <p className="mt-2 text-sm text-gray-600">{t.description}</p>
               <p className="mt-1 text-xs text-gray-400">{t.category} · {new Date(t.createdAt).toLocaleString()}</p>
+              <Link to={`/admin/tickets/${t.id}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">View Details →</Link>
             </div>
           ))}
         </div>

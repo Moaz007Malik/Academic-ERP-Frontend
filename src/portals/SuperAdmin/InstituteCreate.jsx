@@ -5,6 +5,7 @@ import PageTitle from '../../components/layout/PageTitle';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import CredentialsRevealModal from '../../components/common/CredentialsRevealModal';
+import ModulePicker from '../../components/modules/ModulePicker';
 
 export default function InstituteCreate() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function InstituteCreate() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [credentials, setCredentials] = useState(null);
+  const [activeModules, setActiveModules] = useState([]);
   const [form, setForm] = useState({
     name: '',
     instituteCode: '',
@@ -27,9 +29,16 @@ export default function InstituteCreate() {
       setPlans(res.data.data);
       if (res.data.data[0]) {
         setForm((f) => ({ ...f, planId: res.data.data[0].id }));
+        setActiveModules(res.data.data[0].allowedModules || []);
       }
     });
   }, []);
+
+  const onPlanChange = (planId) => {
+    setForm((f) => ({ ...f, planId }));
+    const plan = plans.find((p) => p.id === planId);
+    if (plan?.allowedModules?.length) setActiveModules(plan.allowedModules);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +49,7 @@ export default function InstituteCreate() {
         ? new Date(form.expiryDate).toISOString()
         : new Date(Date.now() + 365 * 86400000).toISOString();
 
-      const { data } = await api.post('/sa/institutes', { ...form, expiryDate: expiry });
+      const { data } = await api.post('/sa/institutes', { ...form, expiryDate: expiry, activeModules });
       setCredentials({
         instituteName: data.data.institute?.name || form.name,
         email: data.data.adminCredentials.email,
@@ -61,7 +70,7 @@ export default function InstituteCreate() {
   return (
     <>
       <PageTitle title="Create Institute" />
-      <form onSubmit={handleSubmit} className="mx-auto max-w-lg space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <Input label="Institute Name" required value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })} />
         <Input label="Institute Code" required placeholder="e.g. GCU-LHR" value={form.instituteCode}
@@ -69,7 +78,7 @@ export default function InstituteCreate() {
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Plan</label>
           <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            value={form.planId} onChange={(e) => setForm({ ...form, planId: e.target.value })} required>
+            value={form.planId} onChange={(e) => onPlanChange(e.target.value)} required>
             {plans.map((p) => (
               <option key={p.id} value={p.id}>{p.name} — PKR {p.price}/{p.billingCycle}</option>
             ))}
@@ -85,6 +94,12 @@ export default function InstituteCreate() {
         </div>
         <Input label="Expiry Date" type="date" value={form.expiryDate}
           onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
+
+        <div className="border-t border-gray-100 pt-4">
+          <h3 className="mb-2 text-sm font-semibold text-gray-800">Module Access</h3>
+          <ModulePicker value={activeModules} onChange={setActiveModules} />
+        </div>
+
         {error && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
         <div className="flex gap-3">
           <Button type="submit" disabled={loading || !!credentials}>{loading ? 'Creating...' : 'Create Institute'}</Button>

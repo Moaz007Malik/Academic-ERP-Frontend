@@ -2,14 +2,16 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { initializeAuth } from '../features/auth/authSlice';
-import { getPortalRouteForRole } from '../utils/constants';
+import { getPortalRouteForRole, MODULE_KEYS } from '../utils/constants';
 import AuthGuard from '../components/guards/AuthGuard';
+import ModuleRouteGuard from '../components/guards/ModuleRouteGuard';
 import LoginPage from '../portals/LoginPage';
 import AccessDeniedPage from '../portals/AccessDeniedPage';
 import SuperAdminLayout from '../portals/SuperAdmin/SuperAdminLayout';
 import SuperAdminDashboard from '../portals/SuperAdmin/Dashboard';
 import InstitutesList from '../portals/SuperAdmin/InstitutesList';
 import InstituteCreate from '../portals/SuperAdmin/InstituteCreate';
+import InstituteDetail from '../portals/SuperAdmin/InstituteDetail';
 import PlansList from '../portals/SuperAdmin/PlansList';
 import InvoicesList from '../portals/SuperAdmin/InvoicesList';
 import TicketsList from '../portals/SuperAdmin/TicketsList';
@@ -24,12 +26,19 @@ import AttendancePage from '../portals/InstituteAdmin/AttendancePage';
 import FeesPage from '../portals/InstituteAdmin/FeesPage';
 import SubscriptionPage from '../portals/InstituteAdmin/SubscriptionPage';
 import TicketsPage from '../portals/InstituteAdmin/TicketsPage';
+import TicketDetail from '../portals/InstituteAdmin/TicketDetail';
+import ProfileSettings from '../portals/InstituteAdmin/ProfileSettings';
+import IdCardPage from '../portals/InstituteAdmin/IdCardPage';
+import ReportsPage from '../portals/InstituteAdmin/ReportsPage';
 import TeacherLayout from '../portals/Teacher/TeacherLayout';
 import TeacherDashboard from '../portals/Teacher/Dashboard';
 import TeacherClasses from '../portals/Teacher/Classes';
 import TeacherAttendance from '../portals/Teacher/Attendance';
 import TeacherMarks from '../portals/Teacher/Marks';
 import TeacherStudents from '../portals/Teacher/Students';
+import TeacherTimetable from '../portals/Teacher/Timetable';
+import TeacherSalary from '../portals/Teacher/Salary';
+import TeacherLeave from '../portals/Teacher/Leave';
 import StudentLayout from '../portals/Student/StudentLayout';
 import StudentDashboard from '../portals/Student/Dashboard';
 import StudentProfile from '../portals/Student/Profile';
@@ -38,6 +47,9 @@ import StudentAttendance from '../portals/Student/Attendance';
 import StudentFees from '../portals/Student/Fees';
 import StudentTimetable from '../portals/Student/Timetable';
 import StudentDocuments from '../portals/Student/Documents';
+import StudentNotifications from '../portals/Student/Notifications';
+import StudentTickets from '../portals/Student/Tickets';
+import StudentTicketDetail from '../portals/Student/TicketDetail';
 import TeacherDocuments from '../portals/Teacher/Documents';
 import ParentDashboard from '../portals/Parent/Dashboard';
 
@@ -50,6 +62,10 @@ function RootRedirect() {
     return <Navigate to={user.portalRoute || getPortalRouteForRole(user.role)} replace />;
   }
   return <Navigate to="/login" replace />;
+}
+
+function Mod({ moduleKey, children }) {
+  return <ModuleRouteGuard moduleKey={moduleKey}>{children}</ModuleRouteGuard>;
 }
 
 export default function AppRouter() {
@@ -81,6 +97,7 @@ export default function AppRouter() {
         <Route index element={<SuperAdminDashboard />} />
         <Route path="institutes" element={<InstitutesList />} />
         <Route path="institutes/new" element={<InstituteCreate />} />
+        <Route path="institutes/:id" element={<InstituteDetail />} />
         <Route path="plans" element={<PlansList />} />
         <Route path="invoices" element={<InvoicesList />} />
         <Route path="tickets" element={<TicketsList />} />
@@ -92,15 +109,19 @@ export default function AppRouter() {
         </AuthGuard>
       }>
         <Route index element={<InstituteAdminDashboard />} />
-        <Route path="academic" element={<AcademicSetup />} />
-        <Route path="students" element={<StudentsList />} />
-        <Route path="teachers" element={<TeachersList />} />
-        <Route path="exams" element={<ExamsPage />} />
-        <Route path="results" element={<ResultsPage />} />
-        <Route path="attendance" element={<AttendancePage />} />
-        <Route path="fees" element={<FeesPage />} />
+        <Route path="academic" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><AcademicSetup /></Mod>} />
+        <Route path="students" element={<Mod moduleKey={MODULE_KEYS.STUDENT_MANAGEMENT}><StudentsList /></Mod>} />
+        <Route path="teachers" element={<Mod moduleKey={MODULE_KEYS.TEACHER_MANAGEMENT}><TeachersList /></Mod>} />
+        <Route path="exams" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ExamsPage /></Mod>} />
+        <Route path="results" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ResultsPage /></Mod>} />
+        <Route path="attendance" element={<Mod moduleKey={MODULE_KEYS.ATTENDANCE}><AttendancePage /></Mod>} />
+        <Route path="fees" element={<Mod moduleKey={MODULE_KEYS.FEES_FINANCE}><FeesPage /></Mod>} />
+        <Route path="idcard" element={<Mod moduleKey={MODULE_KEYS.ID_CARD_DESIGNER}><IdCardPage /></Mod>} />
+        <Route path="reports" element={<Mod moduleKey={MODULE_KEYS.REPORTS}><ReportsPage /></Mod>} />
+        <Route path="settings" element={<Mod moduleKey={MODULE_KEYS.PROFILE_SETTINGS}><ProfileSettings /></Mod>} />
         <Route path="subscription" element={<SubscriptionPage />} />
         <Route path="tickets" element={<TicketsPage />} />
+        <Route path="tickets/:id" element={<TicketDetail />} />
       </Route>
 
       <Route path="/teacher" element={
@@ -113,6 +134,9 @@ export default function AppRouter() {
         <Route path="attendance" element={<TeacherAttendance />} />
         <Route path="marks" element={<TeacherMarks />} />
         <Route path="students" element={<TeacherStudents />} />
+        <Route path="timetable" element={<TeacherTimetable />} />
+        <Route path="salary" element={<TeacherSalary />} />
+        <Route path="leave" element={<TeacherLeave />} />
         <Route path="documents" element={<TeacherDocuments />} />
       </Route>
 
@@ -127,6 +151,9 @@ export default function AppRouter() {
         <Route path="attendance" element={<StudentAttendance />} />
         <Route path="fees" element={<StudentFees />} />
         <Route path="timetable" element={<StudentTimetable />} />
+        <Route path="notifications" element={<StudentNotifications />} />
+        <Route path="tickets" element={<StudentTickets />} />
+        <Route path="tickets/:id" element={<StudentTicketDetail />} />
         <Route path="documents" element={<StudentDocuments />} />
       </Route>
 

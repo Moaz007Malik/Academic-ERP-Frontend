@@ -23,7 +23,10 @@ export default function StudentResults() {
             <div key={group.exam.id} className="rounded-xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-100 px-4 py-3">
                 <h3 className="font-semibold">{group.exam.name}</h3>
-                <p className="text-xs text-gray-500">{group.exam.examType} · Total: {group.totalObtained}/{group.totalMax}</p>
+                <p className="text-xs text-gray-500">
+                  {group.exam.examType} · Total: {group.totalObtained}/{group.totalMax}
+                  {group.totalMax > 0 && ` · ${Math.round((group.totalObtained / group.totalMax) * 10000) / 100}%`}
+                </p>
               </div>
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50">
@@ -33,7 +36,9 @@ export default function StudentResults() {
                     <th className="px-4 py-2 text-left">Practical</th>
                     <th className="px-4 py-2 text-left">Internal</th>
                     <th className="px-4 py-2 text-left">Total</th>
+                    <th className="px-4 py-2 text-left">%</th>
                     <th className="px-4 py-2 text-left">Grade</th>
+                    <th className="px-4 py-2 text-left">Remarks</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -44,7 +49,9 @@ export default function StudentResults() {
                       <td className="px-4 py-2">{r.practicalMarks}</td>
                       <td className="px-4 py-2">{r.internalMarks}</td>
                       <td className="px-4 py-2">{r.totalMarks}/{r.maxMarks}</td>
+                      <td className="px-4 py-2">{r.maxMarks ? Math.round((Number(r.totalMarks) / Number(r.maxMarks)) * 10000) / 100 : '—'}%</td>
                       <td className="px-4 py-2"><Badge variant={r.isPassed ? 'success' : 'danger'}>{r.grade}</Badge></td>
+                      <td className="px-4 py-2 text-xs text-gray-500">{r.remarks || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

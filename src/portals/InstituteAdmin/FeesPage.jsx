@@ -13,9 +13,13 @@ export default function FeesPage() {
   const [structures, setStructures] = useState([]);
   const [fees, setFees] = useState([]);
   const [students, setStudents] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [feeRequests, setFeeRequests] = useState([]);
+  const [tab, setTab] = useState('fees');
   const [openStruct, setOpenStruct] = useState(false);
   const [editStructId, setEditStructId] = useState(null);
   const [openAssign, setOpenAssign] = useState(false);
+  const [assignScope, setAssignScope] = useState('INDIVIDUAL');
   const [structForm, setStructForm] = useState({ frequency: 'MONTHLY' });
   const [assignForm, setAssignForm] = useState({});
   const [error, setError] = useState('');
@@ -25,11 +29,15 @@ export default function FeesPage() {
     Promise.all([
       api.get('/admin/fees/structures'),
       api.get('/admin/fees'),
-      api.get('/admin/students?limit=200'),
-    ]).then(([sRes, fRes, stRes]) => {
+      api.get('/admin/students?limit=500'),
+      api.get('/admin/academic/structure'),
+      api.get('/admin/fees/requests'),
+    ]).then(([sRes, fRes, stRes, structRes, rRes]) => {
       setStructures(sRes.data.data || []);
       setFees(fRes.data.data || []);
       setStudents(stRes.data.data || []);
+      setBatches(structRes.data.data?.batches || []);
+      setFeeRequests(rRes.data.data || []);
     });
   };
 
@@ -85,7 +93,25 @@ export default function FeesPage() {
     setError('');
     const { skipped } = await run(async () => {
       try {
-        await api.post('/admin/fees/assign', assignForm);
+        if (assignScope === 'INDIVIDUAL' && assignForm.studentId) {
+          await api.post('/admin/fees/assign', assignForm);
+        } else {
+          const payload = {
+            scope: assignScope,
+            feeStructureId: assignForm.feeStructureId,
+            dueDate: assignForm.dueDate,
+            discount: assignForm.discount,
+            batchIds: assignForm.batchIds,
+            studentIds: assignForm.studentIds,
+          };
+          if (assignScope === 'BATCH' && assignForm.batchId) {
+            payload.batchIds = [assignForm.batchId];
+          }
+          if (assignScope === 'INDIVIDUAL' && assignForm.studentId) {
+            payload.studentIds = [assignForm.studentId];
+          }
+          await api.post('/admin/fees/assign/bulk', payload);
+        }
         setOpenAssign(false);
         setAssignForm({});
         load();
@@ -95,6 +121,13 @@ export default function FeesPage() {
       }
     });
     if (skipped) setError('Please wait...');
+  };
+
+  const reviewRequest = async (reqId, action) => {
+    const installmentCount = action === 'INSTALLMENT' ? Number(prompt('Number of installments?', '3')) : undefined;
+    const extensionDays = action === 'EXTEND_DUE' ? Number(prompt('Extend by how many days?', '7')) : undefined;
+    await api.post(`/admin/fees/requests/${reqId}/review`, { action, installmentCount, extensionDays });
+    load();
   };
 
   const collect = async (id) => {
@@ -126,6 +159,36 @@ export default function FeesPage() {
       </div>
       {error && !openStruct && !openAssign && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
+      <div className="mb-4 flex gap-2 border-b border-gray-200">
+        <button type="button" onClick={() => setTab('fees')} className={`px-4 py-2 text-sm ${tab === 'fees' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-gray-500'}`}>Fee Records</button>
+        <button type="button" onClick={() => setTab('requests')} className={`px-4 py-2 text-sm ${tab === 'requests' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-gray-500'}`}>Fee Requests ({feeRequests.filter((r) => r.status === 'PENDING').length})</button>
+      </div>
+
+      {tab === 'requests' ? (
+        <div className="space-y-3">
+          {feeRequests.length === 0 ? <p className="text-gray-500">No fee requests.</p> : feeRequests.map((r) => (
+            <div key={r.id} className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="flex justify-between gap-2">
+                <div>
+                  <p className="font-medium">{r.student?.firstName} {r.student?.lastName} — {r.requestType}</p>
+                  <p className="text-sm text-gray-600">{r.reason}</p>
+                  {r.fee && <p className="text-xs text-gray-500">Fee: {r.fee.feeStructure?.name}</p>}
+                </div>
+                <Badge variant={r.status === 'PENDING' ? 'warning' : r.status === 'APPROVED' ? 'success' : 'danger'}>{r.status}</Badge>
+              </div>
+              {r.status === 'PENDING' && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'INSTALLMENT')}>Convert to Installments</Button>
+                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'EXTEND_DUE')}>Extend Due Date</Button>
+                  <Button className="text-xs" onClick={() => reviewRequest(r.id, 'APPROVE')}>Approve</Button>
+                  <Button variant="danger" className="text-xs" onClick={() => reviewRequest(r.id, 'REJECT')}>Reject</Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+      <>
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {structures.map((s) => (
           <div key={s.id} className="rounded-lg border border-gray-200 bg-white p-4">
@@ -178,6 +241,8 @@ export default function FeesPage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
 
       <Modal open={openStruct} onClose={() => setOpenStruct(false)} title={editStructId ? 'Edit Fee Structure' : 'Fee Structure'}>
         <form onSubmit={saveStructure} className="space-y-3">
@@ -193,19 +258,35 @@ export default function FeesPage() {
         </form>
       </Modal>
 
-      <Modal open={openAssign} onClose={() => setOpenAssign(false)} title="Assign Fee to Student">
+      <Modal open={openAssign} onClose={() => setOpenAssign(false)} title="Assign Fee">
         <form onSubmit={assignFee} className="space-y-3">
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Select label="Student" value={assignForm.studentId || ''} onChange={(e) => setAssignForm({ ...assignForm, studentId: e.target.value })} required>
-            <option value="">Select student</option>
-            {students.map((s) => <option key={s.id} value={s.id}>{s.rollNumber} — {s.firstName} {s.lastName}</option>)}
-          </Select>
+          <div className="flex gap-2">
+            {['ALL_STUDENTS', 'BATCH', 'INDIVIDUAL'].map((s) => (
+              <button key={s} type="button" onClick={() => setAssignScope(s)}
+                className={`rounded-lg px-3 py-1.5 text-xs ${assignScope === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                {s === 'ALL_STUDENTS' ? 'All Students' : s === 'BATCH' ? 'Batches' : 'Individual'}
+              </button>
+            ))}
+          </div>
           <Select label="Fee Structure" value={assignForm.feeStructureId || ''} onChange={(e) => setAssignForm({ ...assignForm, feeStructureId: e.target.value })} required>
             <option value="">Select structure</option>
             {structures.map((s) => <option key={s.id} value={s.id}>{s.name} — Rs.{s.amount}</option>)}
           </Select>
+          {assignScope === 'BATCH' && (
+            <Select label="Batch / Class" value={assignForm.batchId || ''} onChange={(e) => setAssignForm({ ...assignForm, batchId: e.target.value })} required>
+              <option value="">Select batch</option>
+              {batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          )}
+          {assignScope === 'INDIVIDUAL' && (
+            <Select label="Student" value={assignForm.studentId || ''} onChange={(e) => setAssignForm({ ...assignForm, studentId: e.target.value })} required>
+              <option value="">Select student</option>
+              {students.map((s) => <option key={s.id} value={s.id}>{s.rollNumber} — {s.firstName} {s.lastName}</option>)}
+            </Select>
+          )}
           <Input label="Due Date" type="date" value={assignForm.dueDate || ''} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} />
-          <Button type="submit" disabled={submitting}>{submitting ? 'Assigning...' : 'Assign'}</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? 'Assigning...' : 'Assign Fee'}</Button>
         </form>
       </Modal>
     </>
