@@ -46,8 +46,13 @@ export default function InstituteDetail() {
   const saveModules = async () => {
     setMessage('');
     await run(async () => {
-      await api.put(`/sa/institutes/${id}/modules`, { activeModules: modules });
-      setMessage('Module access updated successfully.');
+      const res = await api.put(`/sa/institutes/${id}/modules`, { activeModules: modules });
+      const stripped = res.data.data?.strippedModules || [];
+      if (stripped.length) {
+        setMessage(`Modules saved. Deploy latest backend to enable: ${stripped.join(', ')}`);
+      } else {
+        setMessage(res.data.message || 'Module access updated successfully.');
+      }
       load();
     });
   };

@@ -7,8 +7,13 @@ import Button from '../../components/common/Button';
 import Select from '../../components/common/Select';
 import Input from '../../components/common/Input';
 import Badge from '../../components/common/Badge';
+import Modal from '../../components/common/Modal';
 import PaginatedTable from '../../components/common/PaginatedTable';
+import CredentialsRevealModal from '../../components/common/CredentialsRevealModal';
 import { EmptyState } from '../../components/layout/DetailPageLayout';
+import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
+
+const STATUS_OPTIONS = ['ACTIVE', 'ALUMNI', 'EXPELLED', 'TRANSFERRED'];
 
 export default function StudentsList() {
   const navigate = useNavigate();
@@ -17,25 +22,23 @@ export default function StudentsList() {
   const [students, setStudents] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [form, setForm] = useState({ createPortalAccount: true });
+  const [error, setError] = useState('');
+  const [revealedCreds, setRevealedCreds] = useState(null);
+  const { submitting, run } = useAsyncSubmit();
 
   useEffect(() => {
     api.get('/admin/academic/structure').then((res) => {
       const d = res.data.data || {};
-      setStructure({
-        sessions: d.sessions || [],
-        batches: d.batches || [],
-        sections: d.sections || [],
-      });
+      setStructure({ sessions: d.sessions || [], batches: d.batches || [], sections: d.sections || [] });
     });
   }, []);
 
-  const batchesForSession = structure.batches.filter(
-    (b) => !filters.sessionId || b.sessionId === filters.sessionId,
-  );
-  const sectionsForBatch = structure.sections.filter(
-    (s) => !filters.batchId || s.batchId === filters.batchId,
-  );
-
+  const batchesForSession = structure.batches.filter((b) => !filters.sessionId || b.sessionId === filters.sessionId);
+  const sectionsForBatch = structure.sections.filter((s) => !filters.batchId || s.batchId === filters.batchId);
+  const formSections = structure.sections.filter((s) => !form.currentBatchId || s.batchId === form.currentBatchId);
   const canLoad = filters.batchId && filters.sectionId;
 
   const loadStudents = (page = 1) => {
@@ -46,7 +49,6 @@ export default function StudentsList() {
     if (filters.batchId) params.set('batchId', filters.batchId);
     if (filters.sectionId) params.set('sectionId', filters.sectionId);
     if (filters.search.trim()) params.set('search', filters.search.trim());
-
     api.get(`/admin/students?${params}`)
       .then((res) => {
         setStudents(res.data.data || []);
@@ -61,6 +63,68 @@ export default function StudentsList() {
     else setStudents([]);
   }, [filters.batchId, filters.sectionId, filters.sessionId]);
 
+  const openAdd = () => {
+    setEditId(null);
+    setForm({
+      createPortalAccount: true,
+      currentBatchId: filters.batchId || '',
+      currentSectionId: filters.sectionId || '',
+    });
+    setError('');
+    setOpen(true);
+  };
+
+  const openEdit = (s) => {
+    setEditId(s.id);
+    setForm({
+      firstName: s.firstName,
+      lastName: s.lastName,
+      rollNumber: s.rollNumber || '',
+      gender: s.gender || '',
+      phone: s.phone || '',
+      guardianName: s.guardianName || '',
+      guardianPhone: s.guardianPhone || '',
+      currentBatchId: s.currentBatchId || '',
+      currentSectionId: s.currentSectionId || '',
+      status: s.status || 'ACTIVE',
+    });
+    setError('');
+    setOpen(true);
+  };
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    await run(async () => {
+      try {
+        if (editId) {
+          await api.put(`/admin/students/${editId}`, form);
+          setOpen(false);
+          loadStudents(pagination.page || 1);
+        } else {
+          const res = await api.post('/admin/students', form);
+          const creds = res.data.data?.portalCredentials;
+          if (creds?.email) setRevealedCreds(creds);
+          setOpen(false);
+          if (form.currentBatchId === filters.batchId && form.currentSectionId === filters.sectionId) {
+            loadStudents(1);
+          }
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to save student');
+        throw err;
+      }
+    });
+  };
+
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Delete ${s.firstName} ${s.lastName}?`)) return;
+    await api.delete(`/admin/students/${s.id}`);
+    loadStudents(pagination.page || 1);
+  };
+
   const columns = [
     { key: 'roll', label: 'Roll #', render: (s) => <span className="font-mono">{s.rollNumber || '—'}</span> },
     { key: 'name', label: 'Name', render: (s) => `${s.firstName} ${s.lastName}` },
@@ -71,22 +135,21 @@ export default function StudentsList() {
       key: 'action',
       label: '',
       render: (s) => (
-        <Button type="button" variant="ghost" className="text-xs" onClick={(e) => { e.stopPropagation(); navigate(`/admin/students/${s.id}`); }}>
-          View profile
-        </Button>
+        <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <Button type="button" variant="ghost" className="text-xs" onClick={() => navigate(`/admin/students/${s.id}`)}>Profile</Button>
+          <Button type="button" variant="ghost" className="text-xs" onClick={() => openEdit(s)}>Edit</Button>
+          <Button type="button" variant="ghost" className="text-xs text-red-600" onClick={() => handleDelete(s)}>Delete</Button>
+        </div>
       ),
     },
   ];
 
   return (
     <>
-      <Breadcrumbs items={[
-        { label: 'Dashboard', to: '/admin' },
-        { label: 'Students' },
-      ]} />
+      <Breadcrumbs items={[{ label: 'Dashboard', to: '/admin' }, { label: 'Students' }]} />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <PageTitle title="Students" subtitle="Select session, class, and section to browse students" />
-        <Link to="/admin/academic"><Button variant="secondary">+ Add via Academic Setup</Button></Link>
+        <Button onClick={openAdd}>+ Add Student</Button>
       </div>
 
       <div className="mb-4 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -110,7 +173,7 @@ export default function StudentsList() {
       </div>
 
       {!canLoad && !filters.search.trim() ? (
-        <EmptyState title="Select class and section" message="Choose an academic session, class, and section above to view students in that group." />
+        <EmptyState title="Select class and section" message="Choose session, class, and section above — or use Add Student anytime." />
       ) : (
         <PaginatedTable
           columns={columns}
@@ -122,6 +185,53 @@ export default function StudentsList() {
           emptyMessage="No students in this section."
         />
       )}
+
+      <Modal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit Student' : 'Add Student'} wide>
+        <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
+          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
+          <Input label="First Name *" value={form.firstName || ''} onChange={(e) => set('firstName', e.target.value)} required />
+          <Input label="Last Name *" value={form.lastName || ''} onChange={(e) => set('lastName', e.target.value)} required />
+          <Input label="Roll Number" value={form.rollNumber || ''} onChange={(e) => set('rollNumber', e.target.value)} />
+          <Select label="Gender" value={form.gender || ''} onChange={(e) => set('gender', e.target.value)}>
+            <option value="">—</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+          </Select>
+          <Select label="Class/Batch" value={form.currentBatchId || ''} onChange={(e) => { set('currentBatchId', e.target.value); set('currentSectionId', ''); }}>
+            <option value="">Select class</option>
+            {structure.batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </Select>
+          <Select label="Section" value={form.currentSectionId || ''} onChange={(e) => set('currentSectionId', e.target.value)}>
+            <option value="">Select section</option>
+            {formSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </Select>
+          {editId && (
+            <Select label="Status" value={form.status || 'ACTIVE'} onChange={(e) => set('status', e.target.value)}>
+              {STATUS_OPTIONS.map((st) => <option key={st} value={st}>{st}</option>)}
+            </Select>
+          )}
+          <Input label="Phone" value={form.phone || ''} onChange={(e) => set('phone', e.target.value)} />
+          <Input label="Guardian Name" value={form.guardianName || ''} onChange={(e) => set('guardianName', e.target.value)} />
+          <Input label="Guardian Phone" value={form.guardianPhone || ''} onChange={(e) => set('guardianPhone', e.target.value)} />
+          {!editId && (
+            <>
+              <Input label="Portal Email" type="email" value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
+              <Input label="Portal Password" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Default: Student@123" />
+            </>
+          )}
+          <div className="col-span-2">
+            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Student' : 'Create Student'}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <CredentialsRevealModal
+        open={!!revealedCreds}
+        title="Student portal credentials"
+        email={revealedCreds?.email || ''}
+        password={revealedCreds?.password || ''}
+        onConfirm={() => setRevealedCreds(null)}
+      />
     </>
   );
 }
