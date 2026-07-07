@@ -8,10 +8,13 @@ import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const statusVariant = { OPEN: 'warning', IN_PROGRESS: 'info', RESOLVED: 'success', CLOSED: 'default' };
 
+const roleLabel = { STUDENT: 'Student', TEACHER: 'Teacher', INSTITUTE_ADMIN: 'Admin' };
+
 export default function TicketDetail() {
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [reply, setReply] = useState('');
+  const [escalateNote, setEscalateNote] = useState('');
   const { submitting, run } = useAsyncSubmit();
 
   const load = () => {
@@ -30,7 +33,28 @@ export default function TicketDetail() {
     });
   };
 
+  const resolveTicket = async () => {
+    if (!window.confirm('Mark this ticket as resolved?')) return;
+    await run(async () => {
+      await api.patch(`/admin/tickets/${id}/status`, { status: 'RESOLVED' });
+      load();
+    });
+  };
+
+  const escalateTicket = async () => {
+    if (!window.confirm('Forward this technical issue to Super Admin?')) return;
+    await run(async () => {
+      await api.post(`/admin/tickets/${id}/escalate`, { message: escalateNote });
+      setEscalateNote('');
+      load();
+    });
+  };
+
   if (!ticket) return <p className="text-sm text-gray-500">Loading ticket...</p>;
+
+  const fromPortal = ['STUDENT', 'TEACHER'].includes(ticket.createdBy?.role);
+  const canResolve = !ticket.escalatedToSuperAdmin && ticket.status !== 'CLOSED' && ticket.status !== 'RESOLVED';
+  const canEscalate = fromPortal && !ticket.escalatedToSuperAdmin && ticket.status !== 'CLOSED' && ticket.status !== 'RESOLVED';
 
   const timeline = [
     { type: 'created', at: ticket.createdAt, message: ticket.description, author: ticket.createdBy },
@@ -47,7 +71,26 @@ export default function TicketDetail() {
         <Badge variant={statusVariant[ticket.status]}>{ticket.status}</Badge>
         <Badge variant="default">{ticket.priority}</Badge>
         <span className="text-sm text-gray-500">{ticket.category}</span>
+        {ticket.createdBy?.role && (
+          <Badge variant="info">From {roleLabel[ticket.createdBy.role] || ticket.createdBy.role}</Badge>
+        )}
+        {ticket.escalatedToSuperAdmin && <Badge variant="warning">With Super Admin</Badge>}
       </div>
+
+      {canResolve && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={resolveTicket} disabled={submitting}>Resolve (Institute)</Button>
+        </div>
+      )}
+
+      {canEscalate && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="mb-2 text-sm text-amber-900">Technical / platform issue? Forward to Super Admin. Otherwise resolve it here.</p>
+          <textarea className="mb-2 w-full rounded-lg border px-3 py-2 text-sm" rows={2} placeholder="Note for Super Admin (optional)"
+            value={escalateNote} onChange={(e) => setEscalateNote(e.target.value)} />
+          <Button variant="danger" onClick={escalateTicket} disabled={submitting}>Forward to Super Admin</Button>
+        </div>
+      )}
 
       <div className="mb-6 space-y-4">
         {timeline.map((item, i) => (

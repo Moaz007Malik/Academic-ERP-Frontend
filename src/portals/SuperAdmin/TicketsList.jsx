@@ -47,12 +47,12 @@ export default function TicketsList() {
 
   return (
     <>
-      <PageTitle title="Support Tickets" />
+      <PageTitle title="Support Tickets" subtitle="Forwarded technical tickets from institutes" />
       <div className="space-y-4">
         {loading ? (
           <p className="text-gray-500">Loading tickets...</p>
         ) : tickets.length === 0 ? (
-          <p className="text-gray-500">No support tickets.</p>
+          <p className="text-gray-500">No escalated tickets. Institutes handle student/teacher requests first.</p>
         ) : (
           tickets.map((ticket) => (
             <div key={ticket.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">

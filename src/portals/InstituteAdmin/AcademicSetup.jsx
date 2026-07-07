@@ -9,7 +9,7 @@ import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const PATHS = {
-  session: 'sessions', semester: 'semesters', department: 'departments',
+  session: 'sessions', department: 'departments',
   course: 'courses', subject: 'subjects', batch: 'batches', section: 'sections',
 };
 
@@ -20,8 +20,8 @@ function toDateInput(d) {
 
 export default function AcademicSetup() {
   const [step, setStep] = useState(0);
-  const STEPS = ['Sessions', 'Semesters', 'Departments', 'Courses & Subjects', 'Classes & Sections'];
-  const [data, setData] = useState({ sessions: [], semesters: [], departments: [], batches: [], sections: [] });
+  const STEPS = ['Sessions', 'Departments', 'Courses & Subjects', 'Classes & Sections'];
+  const [data, setData] = useState({ sessions: [], departments: [], batches: [], sections: [] });
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [editId, setEditId] = useState(null);
@@ -55,8 +55,6 @@ export default function AcademicSetup() {
     setError('');
     if (type === 'session') {
       setForm({ name: item.name, startDate: toDateInput(item.startDate), endDate: toDateInput(item.endDate), isActive: item.isActive });
-    } else if (type === 'semester') {
-      setForm({ sessionId: item.sessionId, name: item.name, number: item.number, startDate: toDateInput(item.startDate), endDate: toDateInput(item.endDate) });
     } else if (type === 'department') {
       setForm({ name: item.name, code: item.code });
     } else if (type === 'course') {
@@ -126,15 +124,14 @@ export default function AcademicSetup() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         {step === 0 && <Button onClick={() => openAdd('session', { isActive: true })}>+ Session</Button>}
-        {step === 1 && <Button onClick={() => openAdd('semester')}>+ Semester</Button>}
-        {step === 2 && <Button onClick={() => openAdd('department')}>+ Department</Button>}
-        {step === 3 && (
+        {step === 1 && <Button onClick={() => openAdd('department')}>+ Department</Button>}
+        {step === 2 && (
           <>
             <Button onClick={() => openAdd('course')}>+ Course</Button>
             <Button variant="secondary" onClick={() => openAdd('subject')}>+ Subject</Button>
           </>
         )}
-        {step === 4 && (
+        {step === 3 && (
           <>
             <Button onClick={() => openAdd('batch')}>+ Class/Batch</Button>
             <Button variant="secondary" onClick={() => openAdd('section', { capacity: 40 })}>+ Section</Button>
@@ -160,18 +157,6 @@ export default function AcademicSetup() {
             </Card>
           )}
           {step === 1 && (
-            <Card title="Semesters">
-              <ul className="divide-y divide-gray-100 text-sm">
-                {data.semesters?.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-2 py-2">
-                    <span>{s.session?.name} — {s.name} (#{s.number})</span>
-                    <RowActions onEdit={() => openEdit('semester', s)} onDelete={() => remove('semester', s.id, s.name)} />
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-          {step === 2 && (
             <Card title="Departments" className="lg:col-span-2">
               <ul className="divide-y divide-gray-100 text-sm">
                 {data.departments?.map((d) => (
@@ -183,7 +168,7 @@ export default function AcademicSetup() {
               </ul>
             </Card>
           )}
-          {step === 3 && (
+          {step === 2 && (
             <Card title="Departments, Courses & Subjects" className="lg:col-span-2">
               {data.departments?.map((d) => (
                 <div key={d.id} className="mb-4 border-b border-gray-100 pb-3 last:border-0">
@@ -211,7 +196,7 @@ export default function AcademicSetup() {
               ))}
             </Card>
           )}
-          {step === 4 && (
+          {step === 3 && (
             <>
               <Card title="Classes / Batches">
                 <ul className="divide-y divide-gray-100 text-sm">
@@ -247,19 +232,6 @@ export default function AcademicSetup() {
             <Input label="End Date" type="date" value={form.endDate || ''} onChange={(e) => set('endDate', e.target.value)} />
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!form.isActive} onChange={(e) => set('isActive', e.target.checked)} /> Set as active session</label>
             <Button disabled={submitting} onClick={() => submit('session')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
-          </div>
-        )}
-        {modal === 'semester' && (
-          <div className="space-y-3">
-            <Select label="Session" value={form.sessionId || ''} onChange={(e) => set('sessionId', e.target.value)}>
-              <option value="">Select session</option>
-              {data.sessions?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </Select>
-            <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
-            <Input label="Number" type="number" value={form.number ?? ''} onChange={(e) => set('number', Number(e.target.value))} />
-            <Input label="Start Date" type="date" value={form.startDate || ''} onChange={(e) => set('startDate', e.target.value)} />
-            <Input label="End Date" type="date" value={form.endDate || ''} onChange={(e) => set('endDate', e.target.value)} />
-            <Button disabled={submitting} onClick={() => submit('semester')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
         {modal === 'department' && (

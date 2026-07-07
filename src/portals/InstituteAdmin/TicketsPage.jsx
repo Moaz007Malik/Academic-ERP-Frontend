@@ -8,6 +8,7 @@ import Input from '../../components/common/Input';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const statusVariant = { OPEN: 'warning', IN_PROGRESS: 'info', RESOLVED: 'success', CLOSED: 'default' };
+const roleLabel = { STUDENT: 'Student', TEACHER: 'Teacher' };
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState([]);
@@ -44,9 +45,10 @@ export default function TicketsPage() {
 
   return (
     <>
-      <PageTitle title="Support Tickets">
-        <Button onClick={() => setShowForm(!showForm)}>New Ticket</Button>
-      </PageTitle>
+      <PageTitle title="Support Tickets" subtitle="Student & teacher requests appear here first. Resolve locally or forward technical issues to Super Admin." />
+      <div className="mb-4 flex justify-end">
+        <Button onClick={() => setShowForm(!showForm)}>New Platform Ticket</Button>
+      </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-white p-5">
@@ -84,7 +86,11 @@ export default function TicketsPage() {
                 <Badge variant={statusVariant[t.status]}>{t.status}</Badge>
               </div>
               <p className="mt-2 text-sm text-gray-600">{t.description}</p>
-              <p className="mt-1 text-xs text-gray-400">{t.category} · {new Date(t.createdAt).toLocaleString()}</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {t.category} · {t.createdBy?.role && `${roleLabel[t.createdBy.role] || t.createdBy.role} · `}
+                {t.escalatedToSuperAdmin ? 'With Super Admin · ' : ''}
+                {new Date(t.createdAt).toLocaleString()}
+              </p>
               <Link to={`/admin/tickets/${t.id}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">View Details →</Link>
             </div>
           ))}

@@ -24,6 +24,9 @@ import TeachersList from '../portals/InstituteAdmin/TeachersList';
 import TeacherDetail from '../portals/InstituteAdmin/TeacherDetail';
 import IndividualCoursesList from '../portals/InstituteAdmin/IndividualCoursesList';
 import IndividualCourseDetail from '../portals/InstituteAdmin/IndividualCourseDetail';
+import DegreesList from '../portals/InstituteAdmin/DegreesList';
+import DegreeDetail from '../portals/InstituteAdmin/DegreeDetail';
+import DegreeBatchDetail from '../portals/InstituteAdmin/DegreeBatchDetail';
 import ExamDetail from '../portals/InstituteAdmin/ExamDetail';
 import ExamsPage from '../portals/InstituteAdmin/ExamsPage';
 import ResultsPage from '../portals/InstituteAdmin/ResultsPage';
@@ -45,6 +48,8 @@ import TeacherStudents from '../portals/Teacher/Students';
 import TeacherTimetable from '../portals/Teacher/Timetable';
 import TeacherSalary from '../portals/Teacher/Salary';
 import TeacherLeave from '../portals/Teacher/Leave';
+import TeacherTickets from '../portals/Teacher/Tickets';
+import TeacherTicketDetail from '../portals/Teacher/TicketDetail';
 import StudentLayout from '../portals/Student/StudentLayout';
 import StudentDashboard from '../portals/Student/Dashboard';
 import StudentProfile from '../portals/Student/Profile';
@@ -122,6 +127,9 @@ export default function AppRouter() {
         <Route path="teachers/:id" element={<Mod moduleKey={MODULE_KEYS.TEACHER_MANAGEMENT}><TeacherDetail /></Mod>} />
         <Route path="individual-courses" element={<Mod moduleKey={MODULE_KEYS.INDIVIDUAL_COURSES}><IndividualCoursesList /></Mod>} />
         <Route path="individual-courses/:id" element={<Mod moduleKey={MODULE_KEYS.INDIVIDUAL_COURSES}><IndividualCourseDetail /></Mod>} />
+        <Route path="degrees" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreesList /></Mod>} />
+        <Route path="degrees/batches/:batchId" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreeBatchDetail /></Mod>} />
+        <Route path="degrees/:degreeId" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreeDetail /></Mod>} />
         <Route path="exams/:id" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ExamDetail /></Mod>} />
         <Route path="credentials" element={
           <AuthGuard allowedRoles={['INSTITUTE_ADMIN']}>
@@ -153,6 +161,8 @@ export default function AppRouter() {
         <Route path="timetable" element={<TeacherTimetable />} />
         <Route path="salary" element={<TeacherSalary />} />
         <Route path="leave" element={<TeacherLeave />} />
+        <Route path="tickets" element={<TeacherTickets />} />
+        <Route path="tickets/:id" element={<TeacherTicketDetail />} />
         <Route path="documents" element={<TeacherDocuments />} />
       </Route>
 

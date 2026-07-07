@@ -22,6 +22,12 @@ export default function TeacherAttendance() {
   }, []);
 
   const assignments = dashboard?.assignments || [];
+  const individualCourses = dashboard?.individualCourses || [];
+  const degreeCourses = dashboard?.degreeCourses || [];
+  const [icCourseId, setIcCourseId] = useState('');
+  const [degreeCourseId, setDegreeCourseId] = useState('');
+  const [icStudents, setIcStudents] = useState([]);
+  const [icRecords, setIcRecords] = useState({});
   const sections = [...new Map(assignments.map((a) => [a.sectionId, a.section])).values()];
   const subjectsForSection = assignments.filter((a) => a.sectionId === sectionId);
 
@@ -35,6 +41,16 @@ export default function TeacherAttendance() {
       setRecords(init);
     });
   }, [sectionId]);
+
+  useEffect(() => {
+    if (!icCourseId) return;
+    const course = individualCourses.find((c) => c.id === icCourseId);
+    const list = course?.enrollments?.map((e) => e.student) || [];
+    setIcStudents(list);
+    const init = {};
+    list.forEach((s) => { init[s.id] = 'PRESENT'; });
+    setIcRecords(init);
+  }, [icCourseId, individualCourses]);
 
   const save = async () => {
     const { skipped } = await run(async () => {
@@ -83,6 +99,63 @@ export default function TeacherAttendance() {
           </table>
           <Button className="mt-4" disabled={submitting} onClick={save}>{submitting ? 'Saving...' : 'Save'}</Button>
         </>
+      )}
+
+      {individualCourses.length > 0 && (
+        <div className="mt-10">
+          <PageTitle title="Individual Course Attendance" />
+          <div className="mb-4 grid gap-4 sm:grid-cols-2">
+            <Select label="Individual Course" value={icCourseId} onChange={(e) => setIcCourseId(e.target.value)}>
+              <option value="">Select course</option>
+              {individualCourses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </div>
+          {icCourseId && icStudents.length > 0 && (
+            <>
+              <table className="min-w-full rounded-xl border text-sm">
+                <thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left">Roll</th><th className="px-4 py-2 text-left">Name</th><th className="px-4 py-2 text-left">Status</th></tr></thead>
+                <tbody>
+                  {icStudents.map((s) => (
+                    <tr key={s.id} className="border-t">
+                      <td className="px-4 py-2">{s.rollNumber}</td>
+                      <td className="px-4 py-2">{s.firstName} {s.lastName}</td>
+                      <td className="px-4 py-2">
+                        <select className="rounded border px-2 py-1" value={icRecords[s.id]} onChange={(e) => setIcRecords({ ...icRecords, [s.id]: e.target.value })}>
+                          {STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Button className="mt-4" disabled={submitting} onClick={async () => {
+                await api.post(`/teacher/individual-courses/${icCourseId}/attendance/mark`, {
+                  date,
+                  records: icStudents.map((s) => ({ studentId: s.id, status: icRecords[s.id] || 'PRESENT' })),
+                });
+                setMsg('Individual course attendance saved');
+              }}>Save Individual Course Attendance</Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {degreeCourses.length > 0 && (
+        <div className="mt-10">
+          <PageTitle title="Degree Course Attendance" />
+          <Select label="Degree Course" value={degreeCourseId} onChange={(e) => setDegreeCourseId(e.target.value)}>
+            <option value="">Select course</option>
+            {degreeCourses.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </Select>
+          {degreeCourseId && (
+            <Button className="mt-4" onClick={async () => {
+              const res = await api.get(`/teacher/degree-courses/${degreeCourseId}/students`);
+              const records = (res.data.data || []).map((s) => ({ studentId: s.student.id, status: 'PRESENT' }));
+              await api.post(`/teacher/degree-courses/${degreeCourseId}/attendance/mark`, { date, records });
+              setMsg('Degree course attendance saved');
+            }}>Mark All Present (Degree)</Button>
+          )}
+        </div>
       )}
     </>
   );

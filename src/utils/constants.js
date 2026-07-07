@@ -29,6 +29,7 @@ export const MODULE_KEYS = {
   TICKETS: 'TICKETS',
   PROFILE_SETTINGS: 'PROFILE_SETTINGS',
   INDIVIDUAL_COURSES: 'INDIVIDUAL_COURSES',
+  DEGREE: 'DEGREE',
 };
 
 export const MODULE_CATALOG = [
@@ -62,6 +63,7 @@ export const MODULE_CATALOG = [
   { key: MODULE_KEYS.RESEARCH, label: 'Research', category: 'Academic' },
   { key: MODULE_KEYS.PROFILE_SETTINGS, label: 'Profile Settings', category: 'System' },
   { key: MODULE_KEYS.INDIVIDUAL_COURSES, label: 'Individual Courses', category: 'Academic' },
+  { key: MODULE_KEYS.DEGREE, label: 'Degree Programs', category: 'Academic' },
 ];
 
 export const MODULE_LABELS = Object.fromEntries(

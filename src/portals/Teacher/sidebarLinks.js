@@ -7,5 +7,6 @@ export const TEACHER_SIDEBAR_LINKS = [
   { to: '/teacher/timetable', label: 'Timetable' },
   { to: '/teacher/salary', label: 'Salary Slips' },
   { to: '/teacher/leave', label: 'Leave Requests' },
+  { to: '/teacher/tickets', label: 'Support Tickets' },
   { to: '/teacher/documents', label: 'Documents' },
 ];
