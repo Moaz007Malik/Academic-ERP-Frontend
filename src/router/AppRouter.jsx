@@ -27,6 +27,7 @@ import IndividualCourseDetail from '../portals/InstituteAdmin/IndividualCourseDe
 import DegreesList from '../portals/InstituteAdmin/DegreesList';
 import DegreeDetail from '../portals/InstituteAdmin/DegreeDetail';
 import DegreeBatchDetail from '../portals/InstituteAdmin/DegreeBatchDetail';
+import DegreeStudentDetail from '../portals/InstituteAdmin/DegreeStudentDetail';
 import ExamDetail from '../portals/InstituteAdmin/ExamDetail';
 import ExamsPage from '../portals/InstituteAdmin/ExamsPage';
 import ResultsPage from '../portals/InstituteAdmin/ResultsPage';
@@ -129,6 +130,7 @@ export default function AppRouter() {
         <Route path="individual-courses/:id" element={<Mod moduleKey={MODULE_KEYS.INDIVIDUAL_COURSES}><IndividualCourseDetail /></Mod>} />
         <Route path="degrees" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreesList /></Mod>} />
         <Route path="degrees/batches/:batchId" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreeBatchDetail /></Mod>} />
+        <Route path="degrees/students/:degreeStudentId" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreeStudentDetail /></Mod>} />
         <Route path="degrees/:degreeId" element={<Mod moduleKey={MODULE_KEYS.DEGREE}><DegreeDetail /></Mod>} />
         <Route path="exams/:id" element={<Mod moduleKey={MODULE_KEYS.RESULTS_EXAMS}><ExamDetail /></Mod>} />
         <Route path="credentials" element={

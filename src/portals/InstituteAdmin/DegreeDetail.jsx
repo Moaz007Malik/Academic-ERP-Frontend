@@ -12,7 +12,7 @@ export default function DegreeDetail() {
   const { degreeId } = useParams();
   const [degree, setDegree] = useState(null);
   const [batchOpen, setBatchOpen] = useState(false);
-  const [batchForm, setBatchForm] = useState({ maxStudents: 50, totalSemesters: 8, registrationFee: 0 });
+  const [batchForm, setBatchForm] = useState({ maxStudents: 50, totalSemesters: 8, registrationFee: 0, defaultSemesterFee: 25000 });
   const [loading, setLoading] = useState(true);
 
   const load = () => {
@@ -74,6 +74,8 @@ export default function DegreeDetail() {
           <Input label="Max Students" type="number" value={batchForm.maxStudents} onChange={(e) => setBatchForm({ ...batchForm, maxStudents: e.target.value })} />
           <Input label="Total Semesters" type="number" value={batchForm.totalSemesters} onChange={(e) => setBatchForm({ ...batchForm, totalSemesters: e.target.value })} />
           <Input className="sm:col-span-2" label="Registration Fee" type="number" value={batchForm.registrationFee} onChange={(e) => setBatchForm({ ...batchForm, registrationFee: e.target.value })} />
+          <Input className="sm:col-span-2" label="Default Semester Fee *" type="number" value={batchForm.defaultSemesterFee} onChange={(e) => setBatchForm({ ...batchForm, defaultSemesterFee: e.target.value })} required />
+          <p className="sm:col-span-2 text-xs text-gray-500">This fee applies to all semesters. Individual semesters can be updated later.</p>
           <div className="sm:col-span-2"><Button type="submit">Create Batch</Button></div>
         </form>
       </Modal>

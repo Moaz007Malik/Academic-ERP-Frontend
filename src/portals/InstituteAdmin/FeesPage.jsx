@@ -6,180 +6,227 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import Badge from '../../components/common/Badge';
+import { SectionCard, StatGrid, StatCard, EmptyState } from '../../components/layout/DetailPageLayout';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
+const MODULE_LABELS = { ACADEMIC: 'Academic', DEGREE: 'Degree', INDIVIDUAL_COURSE: 'Individual Course' };
+
 export default function FeesPage() {
+  const [modules, setModules] = useState([]);
+  const [module, setModule] = useState(null);
+  const [step, setStep] = useState(0);
+  const [selection, setSelection] = useState({});
+  const [items, setItems] = useState([]);
+  const [feeDetail, setFeeDetail] = useState(null);
   const [structures, setStructures] = useState([]);
-  const [fees, setFees] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [batches, setBatches] = useState([]);
   const [feeRequests, setFeeRequests] = useState([]);
-  const [tab, setTab] = useState('fees');
+  const [adminTab, setAdminTab] = useState('hub');
   const [openStruct, setOpenStruct] = useState(false);
   const [editStructId, setEditStructId] = useState(null);
-  const [openAssign, setOpenAssign] = useState(false);
-  const [assignScope, setAssignScope] = useState('INDIVIDUAL');
   const [structForm, setStructForm] = useState({ frequency: 'MONTHLY' });
-  const [assignForm, setAssignForm] = useState({});
   const [error, setError] = useState('');
   const { submitting, run } = useAsyncSubmit();
 
-  const load = () => {
+  const loadAdmin = () => {
     Promise.all([
       api.get('/admin/fees/structures'),
-      api.get('/admin/fees'),
-      api.get('/admin/students?limit=500'),
-      api.get('/admin/academic/structure'),
       api.get('/admin/fees/requests'),
-    ]).then(([sRes, fRes, stRes, structRes, rRes]) => {
+      api.get('/admin/finance/modules'),
+    ]).then(([sRes, rRes, mRes]) => {
       setStructures(sRes.data.data || []);
-      setFees(fRes.data.data || []);
-      setStudents(stRes.data.data || []);
-      setBatches(structRes.data.data?.batches || []);
       setFeeRequests(rRes.data.data || []);
+      setModules(mRes.data.data || []);
     });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { loadAdmin(); }, []);
 
-  const openAddStruct = () => {
-    setEditStructId(null);
-    setStructForm({ frequency: 'MONTHLY' });
-    setError('');
-    setOpenStruct(true);
+  const resetHub = () => {
+    setModule(null);
+    setStep(0);
+    setSelection({});
+    setItems([]);
+    setFeeDetail(null);
   };
 
-  const openEditStruct = (s) => {
-    setEditStructId(s.id);
-    setStructForm({ name: s.name, amount: Number(s.amount), frequency: s.frequency || 'MONTHLY' });
-    setError('');
-    setOpenStruct(true);
-  };
-
-  const saveStructure = async (e) => {
-    e.preventDefault();
-    setError('');
-    const { skipped } = await run(async () => {
-      try {
-        if (editStructId) {
-          await api.put(`/admin/fees/structures/${editStructId}`, structForm);
-        } else {
-          await api.post('/admin/fees/structures', structForm);
-        }
-        setOpenStruct(false);
-        setStructForm({ frequency: 'MONTHLY' });
-        load();
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to save');
-        throw err;
-      }
-    });
-    if (skipped) setError('Please wait, saving...');
-  };
-
-  const deleteStructure = async (s) => {
-    if (!confirmDelete(`Delete fee structure "${s.name}"?`)) return;
-    try {
-      await api.delete(`/admin/fees/structures/${s.id}`);
-      load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete');
+  const selectModule = (m) => {
+    setModule(m);
+    setStep(1);
+    setSelection({});
+    setItems([]);
+    setFeeDetail(null);
+    if (m === 'ACADEMIC') {
+      api.get('/admin/finance/academic/sessions').then((res) => setItems(res.data.data || []));
+    } else if (m === 'DEGREE') {
+      api.get('/admin/finance/degree/programs').then((res) => setItems(res.data.data || []));
+    } else {
+      api.get('/admin/finance/individual-courses/courses').then((res) => setItems(res.data.data || []));
     }
   };
 
-  const assignFee = async (e) => {
-    e.preventDefault();
-    setError('');
-    const { skipped } = await run(async () => {
-      try {
-        if (assignScope === 'INDIVIDUAL' && assignForm.studentId) {
-          await api.post('/admin/fees/assign', assignForm);
-        } else {
-          const payload = {
-            scope: assignScope,
-            feeStructureId: assignForm.feeStructureId,
-            dueDate: assignForm.dueDate,
-            discount: assignForm.discount,
-            batchIds: assignForm.batchIds,
-            studentIds: assignForm.studentIds,
-          };
-          if (assignScope === 'BATCH' && assignForm.batchId) {
-            payload.batchIds = [assignForm.batchId];
-          }
-          if (assignScope === 'INDIVIDUAL' && assignForm.studentId) {
-            payload.studentIds = [assignForm.studentId];
-          }
-          await api.post('/admin/fees/assign/bulk', payload);
-        }
-        setOpenAssign(false);
-        setAssignForm({});
-        load();
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to assign');
-        throw err;
+  const drill = async (key, value, label, meta = {}) => {
+    const next = { ...selection, [key]: { value, label, ...meta } };
+    setSelection(next);
+    setFeeDetail(null);
+
+    if (module === 'ACADEMIC') {
+      if (key === 'session') {
+        setStep(2);
+        const res = await api.get('/admin/finance/academic/batches', { params: { sessionId: value } });
+        setItems(res.data.data || []);
+      } else if (key === 'batch') {
+        setStep(3);
+        const res = await api.get('/admin/finance/academic/sections', { params: { batchId: value } });
+        setItems(res.data.data || []);
+      } else if (key === 'section') {
+        setStep(4);
+        const res = await api.get('/admin/finance/academic/students', { params: { sectionId: value } });
+        setItems(res.data.data || []);
+      } else if (key === 'student') {
+        setStep(5);
+        const res = await api.get(`/admin/finance/academic/students/${value}/fees`);
+        setFeeDetail(res.data.data);
       }
-    });
-    if (skipped) setError('Please wait...');
+    } else if (module === 'DEGREE') {
+      if (key === 'degree') {
+        setStep(2);
+        const res = await api.get('/admin/finance/degree/batches', { params: { degreeId: value } });
+        setItems(res.data.data || []);
+      } else if (key === 'batch') {
+        setStep(3);
+        const res = await api.get('/admin/finance/degree/semesters', { params: { batchId: value } });
+        setItems(res.data.data || []);
+      } else if (key === 'semester') {
+        setStep(4);
+        const res = await api.get('/admin/finance/degree/students', {
+          params: { batchId: next.batch.value, semesterNumber: next.semester.number },
+        });
+        setItems(res.data.data || []);
+      } else if (key === 'student') {
+        setStep(5);
+        const res = await api.get(`/admin/finance/degree/students/${value}/fees`);
+        setFeeDetail(res.data.data);
+      }
+    } else if (key === 'course') {
+      setStep(2);
+      const res = await api.get('/admin/finance/individual-courses/students', { params: { courseId: value } });
+      setItems(res.data.data || []);
+    } else if (key === 'enrollment') {
+      setStep(3);
+      const res = await api.get(`/admin/finance/individual-courses/enrollments/${value}/fees`);
+      setFeeDetail(res.data.data);
+    }
+  };
+
+  const breadcrumbs = [
+    module && { label: MODULE_LABELS[module], action: () => { setStep(1); setFeeDetail(null); } },
+    selection.session && { label: selection.session.label },
+    selection.degree && { label: selection.degree.label },
+    selection.batch && { label: selection.batch.label },
+    selection.section && { label: `Section ${selection.section.label}` },
+    selection.semester && { label: selection.semester.label },
+    selection.course && { label: selection.course.label },
+    selection.student && { label: selection.student.label },
+    selection.enrollment && { label: selection.enrollment.label },
+  ].filter(Boolean);
+
+  const collect = async (id) => {
+    await api.post(`/admin/fees/${id}/collect`);
+    if (module === 'ACADEMIC' && selection.student) drill('student', selection.student.value, selection.student.label);
+    else if (module === 'DEGREE' && selection.student) drill('student', selection.student.value, selection.student.label);
+    else if (module === 'INDIVIDUAL_COURSE' && selection.enrollment) drill('enrollment', selection.enrollment.value, selection.enrollment.label);
   };
 
   const reviewRequest = async (reqId, action) => {
     const installmentCount = action === 'INSTALLMENT' ? Number(prompt('Number of installments?', '3')) : undefined;
     const extensionDays = action === 'EXTEND_DUE' ? Number(prompt('Extend by how many days?', '7')) : undefined;
     await api.post(`/admin/fees/requests/${reqId}/review`, { action, installmentCount, extensionDays });
-    load();
+    loadAdmin();
   };
 
-  const collect = async (id) => {
-    const { skipped } = await run(async () => {
-      await api.post(`/admin/fees/${id}/collect`);
-      load();
+  const saveStructure = async (e) => {
+    e.preventDefault();
+    await run(async () => {
+      if (editStructId) await api.put(`/admin/fees/structures/${editStructId}`, structForm);
+      else await api.post('/admin/fees/structures', structForm);
+      setOpenStruct(false);
+      loadAdmin();
     });
-    if (skipped) return;
   };
 
-  const deleteFee = async (f) => {
-    if (!confirmDelete('Delete this pending fee record?')) return;
-    try {
-      await api.delete(`/admin/fees/${f.id}`);
-      load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete');
+  const renderList = () => {
+    if (!items.length) return <EmptyState title="No records at this level" />;
+
+    if (module === 'ACADEMIC') {
+      if (step === 1) return items.map((s) => (
+        <ListRow key={s.id} title={s.name} subtitle={s.isActive ? 'Active session' : ''} onClick={() => drill('session', s.id, s.name)} />
+      ));
+      if (step === 2) return items.map((b) => (
+        <ListRow key={b.id} title={b.name} subtitle={`${b._count?.students ?? 0} students`} onClick={() => drill('batch', b.id, b.name)} />
+      ));
+      if (step === 3) return items.map((sec) => (
+        <ListRow key={sec.id} title={`Section ${sec.name}`} subtitle={`${sec._count?.students ?? 0} students`} onClick={() => drill('section', sec.id, sec.name)} />
+      ));
+      if (step === 4) return items.map((st) => (
+        <ListRow key={st.id} title={`${st.firstName} ${st.lastName}`} subtitle={`${st.rollNumber} · Due: ${st.dueAmount?.toLocaleString()} PKR`} onClick={() => drill('student', st.id, `${st.firstName} ${st.lastName}`)} />
+      ));
     }
+
+    if (module === 'DEGREE') {
+      if (step === 1) return items.map((d) => (
+        <ListRow key={d.id} title={d.name} subtitle={`${d._count?.batches ?? 0} batches`} onClick={() => drill('degree', d.id, d.name)} />
+      ));
+      if (step === 2) return items.map((b) => (
+        <ListRow key={b.id} title={b.name} subtitle={`Semester ${b.currentSemester}/${b.totalSemesters}`} onClick={() => drill('batch', b.id, b.name)} />
+      ));
+      if (step === 3) return items.map((s) => (
+        <ListRow key={s.id} title={s.name} subtitle={`Fee: ${Number(s.effectiveFee).toLocaleString()} PKR`} onClick={() => drill('semester', s.id, s.name, { number: s.number })} />
+      ));
+      if (step === 4) return items.map((ds) => (
+        <ListRow key={ds.id} title={`${ds.student.firstName} ${ds.student.lastName}`} subtitle={`Due: ${ds.dueAmount?.toLocaleString()} PKR`} onClick={() => drill('student', ds.id, `${ds.student.firstName} ${ds.student.lastName}`)} />
+      ));
+    }
+
+    if (module === 'INDIVIDUAL_COURSE') {
+      if (step === 1) return items.map((c) => (
+        <ListRow key={c.id} title={c.name} subtitle={`${c._count?.enrollments ?? 0} students`} onClick={() => drill('course', c.id, c.name)} />
+      ));
+      if (step === 2) return items.map((e) => (
+        <ListRow key={e.id} title={`${e.student.firstName} ${e.student.lastName}`} subtitle={`Due: ${e.dueAmount?.toLocaleString()} PKR`} onClick={() => drill('enrollment', e.id, `${e.student.firstName} ${e.student.lastName}`)} />
+      ));
+    }
+    return null;
   };
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <PageTitle title="Fees & Finance" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <PageTitle title="Fees & Finance" subtitle="Module → Program → Batch → Students → Fee Details" />
         <div className="ml-auto flex gap-2">
-          <Button variant="secondary" onClick={openAddStruct}>+ Fee Structure</Button>
-          <Button onClick={() => { setOpenAssign(true); setError(''); }}>Assign Fee</Button>
+          <Button variant="secondary" onClick={() => { setOpenStruct(true); setEditStructId(null); setStructForm({ frequency: 'MONTHLY' }); }}>+ Fee Structure</Button>
         </div>
       </div>
-      {error && !openStruct && !openAssign && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
       <div className="mb-4 flex gap-2 border-b border-gray-200">
-        <button type="button" onClick={() => setTab('fees')} className={`px-4 py-2 text-sm ${tab === 'fees' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-gray-500'}`}>Fee Records</button>
-        <button type="button" onClick={() => setTab('requests')} className={`px-4 py-2 text-sm ${tab === 'requests' ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-gray-500'}`}>Fee Requests ({feeRequests.filter((r) => r.status === 'PENDING').length})</button>
+        {['hub', 'structures', 'requests'].map((t) => (
+          <button key={t} type="button" onClick={() => { setAdminTab(t); if (t === 'hub') resetHub(); }}
+            className={`px-4 py-2 text-sm capitalize ${adminTab === t ? 'border-b-2 border-blue-600 font-medium text-blue-600' : 'text-gray-500'}`}>
+            {t === 'hub' ? 'Finance Hub' : t === 'requests' ? `Requests (${feeRequests.filter((r) => r.status === 'PENDING').length})` : 'Structures'}
+          </button>
+        ))}
       </div>
 
-      {tab === 'requests' ? (
+      {adminTab === 'requests' && (
         <div className="space-y-3">
-          {feeRequests.length === 0 ? <p className="text-gray-500">No fee requests.</p> : feeRequests.map((r) => (
-            <div key={r.id} className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="flex justify-between gap-2">
-                <div>
-                  <p className="font-medium">{r.student?.firstName} {r.student?.lastName} — {r.requestType}</p>
-                  <p className="text-sm text-gray-600">{r.reason}</p>
-                  {r.fee && <p className="text-xs text-gray-500">Fee: {r.fee.feeStructure?.name}</p>}
-                </div>
-                <Badge variant={r.status === 'PENDING' ? 'warning' : r.status === 'APPROVED' ? 'success' : 'danger'}>{r.status}</Badge>
-              </div>
+          {feeRequests.map((r) => (
+            <div key={r.id} className="rounded-xl border bg-white p-4">
+              <div className="flex justify-between"><p className="font-medium">{r.student?.firstName} {r.student?.lastName} — {r.requestType}</p><Badge>{r.status}</Badge></div>
+              <p className="text-sm text-gray-600">{r.reason}</p>
               {r.status === 'PENDING' && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'INSTALLMENT')}>Convert to Installments</Button>
-                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'EXTEND_DUE')}>Extend Due Date</Button>
+                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'INSTALLMENT')}>Installments</Button>
+                  <Button variant="secondary" className="text-xs" onClick={() => reviewRequest(r.id, 'EXTEND_DUE')}>Extend Due</Button>
                   <Button className="text-xs" onClick={() => reviewRequest(r.id, 'APPROVE')}>Approve</Button>
                   <Button variant="danger" className="text-xs" onClick={() => reviewRequest(r.id, 'REJECT')}>Reject</Button>
                 </div>
@@ -187,61 +234,59 @@ export default function FeesPage() {
             </div>
           ))}
         </div>
-      ) : (
-      <>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        {structures.map((s) => (
-          <div key={s.id} className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-medium">{s.name}</p>
-                <p className="text-lg font-semibold text-primary-700">Rs. {Number(s.amount).toLocaleString()}</p>
-                <p className="text-xs text-gray-500">{s.frequency}</p>
-              </div>
-              <RowActions onEdit={() => openEditStruct(s)} onDelete={() => deleteStructure(s)} />
-            </div>
-          </div>
-        ))}
-      </div>
+      )}
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left">Student</th>
-              <th className="px-4 py-3 text-left">Fee</th>
-              <th className="px-4 py-3 text-left">Amount</th>
-              <th className="px-4 py-3 text-left">Due</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {fees.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No fee records</td></tr>
-            ) : fees.map((f) => (
-              <tr key={f.id}>
-                <td className="px-4 py-3">{f.student?.firstName} {f.student?.lastName} ({f.student?.rollNumber})</td>
-                <td className="px-4 py-3">{f.feeStructure?.name}</td>
-                <td className="px-4 py-3">Rs. {Number(f.amount).toLocaleString()}</td>
-                <td className="px-4 py-3">{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
-                <td className="px-4 py-3"><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-1">
-                    {f.status === 'PENDING' && (
-                      <>
-                        <Button variant="secondary" className="px-2 py-1 text-xs" disabled={submitting} onClick={() => collect(f.id)}>Collect</Button>
-                        <RowActions onDelete={() => deleteFee(f)} />
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      </>
+      {adminTab === 'structures' && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {structures.map((s) => (
+            <div key={s.id} className="rounded-lg border bg-white p-4">
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-medium">{s.name}</p>
+                  <p className="text-lg font-semibold text-primary-700">Rs. {Number(s.amount).toLocaleString()}</p>
+                </div>
+                <RowActions onEdit={() => { setEditStructId(s.id); setStructForm({ name: s.name, amount: Number(s.amount), frequency: s.frequency }); setOpenStruct(true); }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adminTab === 'hub' && (
+        <div className="space-y-4">
+          {!module ? (
+            <div className="grid gap-4 sm:grid-cols-3">
+              {modules.map((m) => (
+                <button key={m.key} type="button" onClick={() => selectModule(m.key)}
+                  className="rounded-xl border-2 border-gray-200 bg-white p-6 text-left transition hover:border-blue-500 hover:shadow-md">
+                  <p className="text-lg font-semibold">{m.label}</p>
+                  <p className="mt-1 text-sm text-gray-500">Manage {m.label.toLowerCase()} fees</p>
+                </button>
+              ))}
+              {!modules.length && <p className="text-gray-500">No finance modules enabled.</p>}
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <button type="button" className="text-blue-600" onClick={resetHub}>Modules</button>
+                {breadcrumbs.map((b, i) => (
+                  <span key={i} className="flex items-center gap-2">
+                    <span className="text-gray-400">/</span>
+                    {b.action ? <button type="button" className="text-blue-600" onClick={b.action}>{b.label}</button> : <span>{b.label}</span>}
+                  </span>
+                ))}
+              </div>
+
+              {step < 5 ? (
+                <SectionCard title={step === 1 ? `Select ${MODULE_LABELS[module]} Program` : 'Select next level'}>
+                  <div className="space-y-2">{renderList()}</div>
+                </SectionCard>
+              ) : (
+                <FeeDetailPanel module={module} data={feeDetail} onCollect={collect} submitting={submitting} />
+              )}
+            </>
+          )}
+        </div>
       )}
 
       <Modal open={openStruct} onClose={() => setOpenStruct(false)} title={editStructId ? 'Edit Fee Structure' : 'Fee Structure'}>
@@ -253,42 +298,106 @@ export default function FeesPage() {
             <option value="MONTHLY">Monthly</option>
             <option value="QUARTERLY">Quarterly</option>
             <option value="ANNUAL">Annual</option>
+            <option value="ONE_TIME">One Time</option>
+            <option value="SEMESTER">Semester</option>
           </Select>
-          <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editStructId ? 'Update' : 'Save'}</Button>
-        </form>
-      </Modal>
-
-      <Modal open={openAssign} onClose={() => setOpenAssign(false)} title="Assign Fee">
-        <form onSubmit={assignFee} className="space-y-3">
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex gap-2">
-            {['ALL_STUDENTS', 'BATCH', 'INDIVIDUAL'].map((s) => (
-              <button key={s} type="button" onClick={() => setAssignScope(s)}
-                className={`rounded-lg px-3 py-1.5 text-xs ${assignScope === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                {s === 'ALL_STUDENTS' ? 'All Students' : s === 'BATCH' ? 'Batches' : 'Individual'}
-              </button>
-            ))}
-          </div>
-          <Select label="Fee Structure" value={assignForm.feeStructureId || ''} onChange={(e) => setAssignForm({ ...assignForm, feeStructureId: e.target.value })} required>
-            <option value="">Select structure</option>
-            {structures.map((s) => <option key={s.id} value={s.id}>{s.name} — Rs.{s.amount}</option>)}
-          </Select>
-          {assignScope === 'BATCH' && (
-            <Select label="Batch / Class" value={assignForm.batchId || ''} onChange={(e) => setAssignForm({ ...assignForm, batchId: e.target.value })} required>
-              <option value="">Select batch</option>
-              {batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </Select>
-          )}
-          {assignScope === 'INDIVIDUAL' && (
-            <Select label="Student" value={assignForm.studentId || ''} onChange={(e) => setAssignForm({ ...assignForm, studentId: e.target.value })} required>
-              <option value="">Select student</option>
-              {students.map((s) => <option key={s.id} value={s.id}>{s.rollNumber} — {s.firstName} {s.lastName}</option>)}
-            </Select>
-          )}
-          <Input label="Due Date" type="date" value={assignForm.dueDate || ''} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} />
-          <Button type="submit" disabled={submitting}>{submitting ? 'Assigning...' : 'Assign Fee'}</Button>
+          <Button type="submit" disabled={submitting}>Save</Button>
         </form>
       </Modal>
     </>
+  );
+}
+
+function ListRow({ title, subtitle, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 text-left hover:border-blue-400">
+      <div>
+        <p className="font-medium">{title}</p>
+        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+      </div>
+      <span className="text-gray-400">→</span>
+    </button>
+  );
+}
+
+function FeeDetailPanel({ module, data, onCollect, submitting }) {
+  if (!data) return <p className="text-gray-500">Loading fee details...</p>;
+
+  const summary = data.summary || data.feeSummary;
+  const fees = data.fees || [];
+  const student = data.student || data.degreeStudent?.student || data.enrollment?.student;
+
+  return (
+    <div className="space-y-4">
+      <SectionCard title={student ? `${student.firstName} ${student.lastName} — Fee Details` : 'Fee Details'}>
+        <StatGrid cols={3}>
+          <StatCard label="Paid" value={summary?.paid?.toLocaleString()} suffix=" PKR" variant="success" />
+          <StatCard label="Due" value={summary?.remaining?.toLocaleString()} suffix=" PKR" variant="warning" />
+          <StatCard label="Total" value={summary?.total?.toLocaleString()} suffix=" PKR" />
+        </StatGrid>
+
+        {module === 'DEGREE' && data.degreeStudent && (
+          <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+            <p>Assigned Semester Fee: <strong>{Number(data.assignedSemesterFee).toLocaleString()} PKR</strong></p>
+            <p>Discount: {Number(data.discount).toLocaleString()} PKR</p>
+            <p>Scholarship: {Number(data.scholarship || 0).toLocaleString()} PKR</p>
+            <p>Net Fee: {Number(data.netSemesterFee).toLocaleString()} PKR</p>
+            {data.installmentEnabled && <p>Installment Plan: {data.installmentCount} installments</p>}
+          </div>
+        )}
+
+        {module === 'INDIVIDUAL_COURSE' && data.enrollment && (
+          <div className="mt-4 text-sm">
+            <p>Assigned Course Fee: <strong>{Number(data.assignedCourseFee).toLocaleString()} PKR</strong></p>
+            <p>Course: {data.enrollment.course?.name}</p>
+          </div>
+        )}
+      </SectionCard>
+
+      {summary?.installmentPlans?.length > 0 && (
+        <SectionCard title="Installment Schedule">
+          {summary.installmentPlans.map((plan) => (
+            <div key={plan.parentFee.id} className="mb-4 rounded border p-3">
+              <p className="font-medium">{plan.parentFee.feeStructure?.name}</p>
+              <p className="text-xs text-gray-500">
+                Paid: {plan.paidInstallments} · Remaining: {plan.remainingInstallments} · Balance: {plan.remainingBalance?.toLocaleString()} PKR
+              </p>
+              <table className="mt-2 min-w-full text-sm">
+                <thead><tr className="text-left text-xs text-gray-500"><th>#</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  {plan.installments.map((inst) => (
+                    <tr key={inst.id} className="border-t">
+                      <td className="py-1">{inst.installmentNo}</td>
+                      <td>{Number(inst.amount).toLocaleString()}</td>
+                      <td>{inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '—'}</td>
+                      <td><Badge variant={inst.status === 'PAID' ? 'success' : 'warning'}>{inst.status}</Badge></td>
+                      <td>{inst.status === 'PENDING' && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(inst.id)}>Collect</Button>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </SectionCard>
+      )}
+
+      <SectionCard title="Fee Records & Payment History">
+        <table className="min-w-full text-sm">
+          <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="py-2">Fee</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {fees.map((f) => (
+              <tr key={f.id} className="border-b border-gray-100">
+                <td className="py-2">{f.feeStructure?.name}{f.installmentNo ? ` (#${f.installmentNo})` : ''}</td>
+                <td>{Number(f.amount).toLocaleString()} PKR</td>
+                <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
+                <td><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
+                <td>{f.status === 'PENDING' && !f.parentFeeId && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(f.id)}>Collect</Button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!fees.length && <EmptyState title="No fee records" />}
+      </SectionCard>
+    </div>
   );
 }

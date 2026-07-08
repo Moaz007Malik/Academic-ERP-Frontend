@@ -6,7 +6,7 @@ import Button from '../../components/common/Button';
 import Select from '../../components/common/Select';
 
 export default function StudentFees() {
-  const [data, setData] = useState({ fees: [], pending: [], paid: [] });
+  const [data, setData] = useState({ fees: [], pending: [], paid: [], installmentPlans: [] });
   const [requests, setRequests] = useState([]);
   const [tab, setTab] = useState('pending');
   const [form, setForm] = useState({ requestType: 'INSTALLMENT', reason: '' });
@@ -39,6 +39,28 @@ export default function StudentFees() {
           </button>
         ))}
       </div>
+
+      {data.installmentPlans?.length > 0 && tab !== 'requests' && (
+        <div className="mb-6 space-y-3">
+          <h3 className="font-medium">Installment Plans</h3>
+          {data.installmentPlans.map((plan) => (
+            <div key={plan.parentFee.id} className="rounded-lg border bg-white p-4 text-sm">
+              <p className="font-medium">{plan.parentFee.feeStructure?.name}</p>
+              <p className="mb-2 text-xs text-gray-500">
+                Remaining balance: {plan.remainingBalance?.toLocaleString()} PKR
+              </p>
+              <div className="grid gap-1 sm:grid-cols-2">
+                {plan.installments.map((inst) => (
+                  <div key={inst.id} className="flex justify-between rounded bg-gray-50 px-2 py-1">
+                    <span>#{inst.installmentNo} — {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '—'}</span>
+                    <Badge variant={inst.status === 'PAID' ? 'success' : 'warning'}>{inst.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {tab === 'requests' ? (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -75,7 +97,7 @@ export default function StudentFees() {
               <th className="px-4 py-3 text-left">Amount</th>
               <th className="px-4 py-3 text-left">Due Date</th>
               <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Installments</th>
+              <th className="px-4 py-3 text-left">Source</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -87,7 +109,9 @@ export default function StudentFees() {
                 <td className="px-4 py-3">Rs. {Number(f.amount).toLocaleString()}</td>
                 <td className="px-4 py-3">{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
                 <td className="px-4 py-3"><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
-                <td className="px-4 py-3 text-xs">{f.installments?.length ? `${f.installments.length} installments` : '—'}</td>
+                <td className="px-4 py-3 text-xs text-gray-500">
+                  {f.degreeStudent ? `Degree — ${f.degreeStudent.batch?.degree?.name || ''}` : f.individualCourseEnrollment ? `Course — ${f.individualCourseEnrollment.course?.name}` : 'Academic'}
+                </td>
               </tr>
             ))}
           </tbody>
