@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login, clearError, clearSession } from '../features/auth/authSlice';
 import { getPortalRouteForRole } from '../utils/constants';
 import Input from '../components/common/Input';
@@ -9,9 +9,11 @@ import Button from '../components/common/Button';
 export default function LoginPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error, isAuthenticated, user } = useSelector((s) => s.auth);
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const successMessage = location.state?.message;
 
   useEffect(() => {
     dispatch(clearSession());
@@ -61,6 +63,10 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
           />
+
+          {successMessage && (
+            <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">{successMessage}</div>
+          )}
 
           {error && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>

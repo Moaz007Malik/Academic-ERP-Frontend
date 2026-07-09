@@ -28,7 +28,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/forgot-password', '/auth/reset-password'];
+const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/refresh', '/auth/forgot-password', '/auth/reset-password', '/auth/change-password'];
 
 function isPublicAuthRequest(config) {
   const url = config?.url || '';

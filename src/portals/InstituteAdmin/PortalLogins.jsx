@@ -152,7 +152,7 @@ export default function PortalLogins() {
       </div>
 
       <p className="mt-3 text-xs text-gray-500">
-        Passwords are stored when you create a user or reset their password. If a user changes their own password, use Reset to set a new one.
+        Passwords shown here match what users sign in with. If a user changes their own password in Profile Settings, the new password is updated here automatically.
       </p>
 
       <Modal open={!!resetTarget} onClose={() => setResetTarget(null)} title={`Reset password — ${resetTarget?.firstName} ${resetTarget?.lastName}`}>

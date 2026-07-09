@@ -1,16 +1,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
+import api, { setAccessToken } from '../../services/api';
 import PageTitle from '../../components/layout/PageTitle';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
-import { fetchMe } from '../../features/auth/authSlice';
+import { logout, fetchMe } from '../../features/auth/authSlice';
 import PasswordRequirements from '../../components/common/PasswordRequirements';
 import { checkPasswordStrength } from '../../utils/passwordPolicy';
 
 export default function ProfileSettings() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState({});
   const [passwordForm, setPasswordForm] = useState({});
   const [message, setMessage] = useState('');
@@ -85,8 +87,10 @@ export default function ProfileSettings() {
         currentPassword: passwordForm.current,
         newPassword: passwordForm.newPassword,
       });
-      setPwMessage('Password changed successfully. Please log in again.');
       setPasswordForm({});
+      setAccessToken(null);
+      await dispatch(logout());
+      navigate('/login', { replace: true, state: { message: 'Password changed successfully. Please sign in with your new password.' } });
     } catch (err) {
       setPwMessage(err.response?.data?.message || 'Failed to change password');
     }
