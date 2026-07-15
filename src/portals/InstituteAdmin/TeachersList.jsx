@@ -29,8 +29,8 @@ export default function TeachersList() {
   const { submitting, run } = useAsyncSubmit();
   const { submitting: assigning, run: runAssign } = useAsyncSubmit();
 
-  const allSubjects = structure.departments?.flatMap((d) =>
-    d.courses?.flatMap((c) => (c.subjects || []).map((s) => ({ ...s, courseName: c.name, deptName: d.name }))) || []
+  const allSubjects = structure.classes?.flatMap((c) =>
+    (c.subjects || []).map((s) => ({ ...s, courseName: c.name, deptName: c.department?.name }))
   ) || [];
 
   const load = () => {

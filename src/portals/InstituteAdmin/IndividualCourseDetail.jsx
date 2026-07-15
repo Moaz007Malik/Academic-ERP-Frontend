@@ -26,7 +26,7 @@ export default function IndividualCourseDetail() {
 
   useEffect(() => {
     api.get('/admin/teachers?limit=100').then((r) => setTeachers(r.data.data || []));
-    api.get('/admin/students?limit=200').then((r) => setStudents(r.data.data || []));
+    api.get('/admin/students?limit=200&forPicker=1').then((r) => setStudents(r.data.data || []));
   }, []);
 
   useEffect(() => {
@@ -70,12 +70,12 @@ export default function IndividualCourseDetail() {
           <Input label="Course Name *" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Course Code *" value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
           <Input label="Duration" value={form.duration || ''} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
-          <Input label="Capacity" type="number" value={form.capacity || 30} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
-          <Input label="Admission Fee" type="number" value={form.admissionFee || 0} onChange={(e) => setForm({ ...form, admissionFee: e.target.value })} />
-          <Input label="Monthly Fee" type="number" value={form.monthlyFee || 0} onChange={(e) => setForm({ ...form, monthlyFee: e.target.value })} />
-          <Input label="One-Time Fee" type="number" value={form.oneTimeFee || 0} onChange={(e) => setForm({ ...form, oneTimeFee: e.target.value })} />
-          <Input label="Discount" type="number" value={form.discountAmount || 0} onChange={(e) => setForm({ ...form, discountAmount: e.target.value })} />
-          <Input label="Scholarship" type="number" value={form.scholarshipAmount || 0} onChange={(e) => setForm({ ...form, scholarshipAmount: e.target.value })} />
+          <Input label="Capacity" type="number" value={form.capacity ?? 30} onChange={(e) => setForm({ ...form, capacity: e.target.value === '' ? '' : Number(e.target.value) })} />
+          <Input label="Admission Fee" type="number" value={form.admissionFee ?? 0} onChange={(e) => setForm({ ...form, admissionFee: e.target.value === '' ? 0 : Number(e.target.value) })} />
+          <Input label="Monthly Fee" type="number" value={form.monthlyFee ?? 0} onChange={(e) => setForm({ ...form, monthlyFee: e.target.value === '' ? 0 : Number(e.target.value) })} />
+          <Input label="One-Time Fee" type="number" value={form.oneTimeFee ?? 0} onChange={(e) => setForm({ ...form, oneTimeFee: e.target.value === '' ? 0 : Number(e.target.value) })} />
+          <Input label="Discount" type="number" value={form.discountAmount ?? 0} onChange={(e) => setForm({ ...form, discountAmount: e.target.value === '' ? 0 : Number(e.target.value) })} />
+          <Input label="Scholarship" type="number" value={form.scholarshipAmount ?? 0} onChange={(e) => setForm({ ...form, scholarshipAmount: e.target.value === '' ? 0 : Number(e.target.value) })} />
           <div className="col-span-2">
             <label className="mb-1 block text-sm font-medium text-gray-700">Assign Teachers</label>
             <select multiple className="w-full rounded border px-3 py-2 text-sm" value={form.teacherIds || []} onChange={(e) => setForm({ ...form, teacherIds: [...e.target.selectedOptions].map((o) => o.value) })}>

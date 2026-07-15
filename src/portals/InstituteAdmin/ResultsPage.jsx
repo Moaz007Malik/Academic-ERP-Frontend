@@ -17,8 +17,8 @@ export default function ResultsPage() {
   const { submitting, run } = useAsyncSubmit();
   const [existing, setExisting] = useState([]);
 
-  const allSubjects = structure.departments?.flatMap((d) =>
-    d.courses?.flatMap((c) => c.subjects || []) || []
+  const allSubjects = structure.classes?.flatMap((c) =>
+    (c.subjects || []).map((s) => ({ ...s, className: c.name, deptName: c.department?.name }))
   ) || [];
 
   useEffect(() => {

@@ -9,8 +9,12 @@ import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const PATHS = {
-  session: 'sessions', department: 'departments',
-  course: 'courses', subject: 'subjects', batch: 'batches', section: 'sections',
+  session: 'sessions',
+  department: 'departments',
+  class: 'classes',
+  subject: 'subjects',
+  batch: 'batches',
+  section: 'sections',
 };
 
 function toDateInput(d) {
@@ -20,8 +24,8 @@ function toDateInput(d) {
 
 export default function AcademicSetup() {
   const [step, setStep] = useState(0);
-  const STEPS = ['Sessions', 'Departments', 'Courses & Subjects', 'Classes & Sections'];
-  const [data, setData] = useState({ sessions: [], departments: [], batches: [], sections: [] });
+  const STEPS = ['Sessions', 'Departments', 'Classes & Subjects', 'Batches / Sections'];
+  const [data, setData] = useState({ sessions: [], departments: [], classes: [], batches: [], sections: [] });
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [editId, setEditId] = useState(null);
@@ -33,7 +37,7 @@ export default function AcademicSetup() {
   const load = () => {
     setLoading(true);
     api.get('/admin/academic/structure')
-      .then((res) => setData(res.data.data))
+      .then((res) => setData(res.data.data || {}))
       .catch(console.error)
       .finally(() => setLoading(false));
   };
@@ -57,12 +61,23 @@ export default function AcademicSetup() {
       setForm({ name: item.name, startDate: toDateInput(item.startDate), endDate: toDateInput(item.endDate), isActive: item.isActive });
     } else if (type === 'department') {
       setForm({ name: item.name, code: item.code });
-    } else if (type === 'course') {
-      setForm({ departmentId: item.departmentId, name: item.name, code: item.code, creditHours: item.creditHours });
+    } else if (type === 'class') {
+      setForm({
+        departmentId: item.departmentId,
+        name: item.name,
+        code: item.code || '',
+        registrationFee: Number(item.registrationFee || 0),
+        monthlyFee: Number(item.monthlyFee || 0),
+      });
     } else if (type === 'subject') {
-      setForm({ courseId: item.courseId, name: item.name, code: item.code, creditHours: item.creditHours });
+      setForm({ classId: item.classId, name: item.name, code: item.code, creditHours: item.creditHours });
     } else if (type === 'batch') {
-      setForm({ name: item.name, year: item.year, sessionId: item.sessionId || '' });
+      setForm({
+        name: item.name,
+        year: item.year || '',
+        sessionId: item.sessionId || '',
+        classId: item.classId || '',
+      });
     } else if (type === 'section') {
       setForm({ batchId: item.batchId, name: item.name, capacity: item.capacity });
     }
@@ -105,11 +120,11 @@ export default function AcademicSetup() {
     }
   };
 
-  const modalTitle = `${editId ? 'Edit' : 'Add'} ${modal}`;
+  const selectedClass = data.classes?.find((c) => c.id === form.classId);
 
   return (
     <>
-      <PageTitle title="Academic Setup" subtitle="Step-by-step academic structure setup" />
+      <PageTitle title="Academic Setup" subtitle="Session → Department → Class → Subjects → Batch/Section" />
       {msg && <p className="mb-2 text-sm text-green-600">{msg}</p>}
       {error && !modal && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
@@ -127,14 +142,14 @@ export default function AcademicSetup() {
         {step === 1 && <Button onClick={() => openAdd('department')}>+ Department</Button>}
         {step === 2 && (
           <>
-            <Button onClick={() => openAdd('course')}>+ Course</Button>
+            <Button onClick={() => openAdd('class', { registrationFee: 0, monthlyFee: 0 })}>+ Class</Button>
             <Button variant="secondary" onClick={() => openAdd('subject')}>+ Subject</Button>
           </>
         )}
         {step === 3 && (
           <>
-            <Button onClick={() => openAdd('batch')}>+ Class/Batch</Button>
-            <Button variant="secondary" onClick={() => openAdd('section', { capacity: 40 })}>+ Section</Button>
+            <Button onClick={() => openAdd('batch', { capacity: 40 })}>+ Batch / Section</Button>
+            <Button variant="secondary" onClick={() => openAdd('section', { capacity: 40 })}>+ Section only</Button>
           </>
         )}
         {step < STEPS.length - 1 && (
@@ -156,6 +171,7 @@ export default function AcademicSetup() {
               </ul>
             </Card>
           )}
+
           {step === 1 && (
             <Card title="Departments" className="lg:col-span-2">
               <ul className="divide-y divide-gray-100 text-sm">
@@ -168,42 +184,56 @@ export default function AcademicSetup() {
               </ul>
             </Card>
           )}
+
           {step === 2 && (
-            <Card title="Departments, Courses & Subjects" className="lg:col-span-2">
-              {data.departments?.map((d) => (
-                <div key={d.id} className="mb-4 border-b border-gray-100 pb-3 last:border-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">{d.name} ({d.code})</p>
-                    <RowActions onEdit={() => openEdit('department', d)} onDelete={() => remove('department', d.id, d.name)} />
-                  </div>
-                  {d.courses?.map((c) => (
-                    <div key={c.id} className="ml-4 mt-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span>{c.name} ({c.code})</span>
-                        <RowActions onEdit={() => openEdit('course', { ...c, departmentId: d.id })} onDelete={() => remove('course', c.id, c.name)} />
-                      </div>
-                      <div className="ml-4 mt-1 space-y-1">
-                        {c.subjects?.map((sub) => (
-                          <div key={sub.id} className="flex items-center justify-between text-xs text-gray-600">
-                            <span>{sub.name} ({sub.code})</span>
-                            <RowActions onEdit={() => openEdit('subject', { ...sub, courseId: c.id })} onDelete={() => remove('subject', sub.id, sub.name)} />
-                          </div>
-                        ))}
-                      </div>
+            <Card title="Classes & Subjects" className="lg:col-span-2">
+              {!data.classes?.length && <p className="text-sm text-gray-500">No classes yet. Create a class to add subjects and fees.</p>}
+              {data.classes?.map((cls) => (
+                <div key={cls.id} className="mb-4 border-b border-gray-100 pb-3 last:border-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-sm">{cls.name} <span className="text-gray-400">({cls.department?.name})</span></p>
+                      <p className="text-xs text-gray-500">
+                        Registration: {Number(cls.registrationFee).toLocaleString()} PKR · Monthly: {Number(cls.monthlyFee).toLocaleString()} PKR
+                        · {cls.subjects?.length || 0} subjects · {cls._count?.batches || 0} batches
+                      </p>
                     </div>
-                  ))}
+                    <RowActions onEdit={() => openEdit('class', cls)} onDelete={() => remove('class', cls.id, cls.name)} />
+                  </div>
+                  <div className="ml-3 mt-2 space-y-1">
+                    {cls.subjects?.map((sub) => (
+                      <div key={sub.id} className="flex items-center justify-between text-xs text-gray-600">
+                        <span>{sub.name} ({sub.code})</span>
+                        <RowActions onEdit={() => openEdit('subject', { ...sub, classId: cls.id })} onDelete={() => remove('subject', sub.id, sub.name)} />
+                      </div>
+                    ))}
+                    <button type="button" className="text-xs text-blue-600" onClick={() => openAdd('subject', { classId: cls.id })}>+ Add subject</button>
+                  </div>
                 </div>
               ))}
             </Card>
           )}
+
           {step === 3 && (
             <>
-              <Card title="Classes / Batches">
+              <Card title="Batches">
                 <ul className="divide-y divide-gray-100 text-sm">
                   {data.batches?.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between gap-2 py-2">
-                      <span>{b.name} {b.session?.name && <span className="text-gray-400">({b.session.name})</span>}</span>
-                      <RowActions onEdit={() => openEdit('batch', b)} onDelete={() => remove('batch', b.id, b.name)} />
+                    <li key={b.id} className="py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="font-medium">{b.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {b.session?.name} · {b.academicClass?.department?.name} · {b.academicClass?.name || 'No class'}
+                          </p>
+                          {b.academicClass?.subjects?.length > 0 && (
+                            <p className="mt-1 text-xs text-gray-400">
+                              Subjects: {b.academicClass.subjects.map((s) => s.name).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <RowActions onEdit={() => openEdit('batch', b)} onDelete={() => remove('batch', b.id, b.name)} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -212,7 +242,7 @@ export default function AcademicSetup() {
                 <ul className="divide-y divide-gray-100 text-sm">
                   {data.sections?.map((s) => (
                     <li key={s.id} className="flex items-center justify-between gap-2 py-2">
-                      <span>{s.batch?.name} — Section {s.name} (cap: {s.capacity})</span>
+                      <span>{s.batch?.name} — Section {s.name} {s.capacity != null && `(cap: ${s.capacity})`}</span>
                       <RowActions onEdit={() => openEdit('section', s)} onDelete={() => remove('section', s.id, `Section ${s.name}`)} />
                     </li>
                   ))}
@@ -223,8 +253,9 @@ export default function AcademicSetup() {
         </div>
       )}
 
-      <Modal open={!!modal} onClose={closeModal} title={modalTitle}>
+      <Modal open={!!modal} onClose={closeModal} title={`${editId ? 'Edit' : 'Add'} ${modal}`}>
         {error && modal && <p className="mb-3 text-sm text-red-600">{error}</p>}
+
         {modal === 'session' && (
           <div className="space-y-3">
             <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="2024-2025" />
@@ -234,6 +265,7 @@ export default function AcademicSetup() {
             <Button disabled={submitting} onClick={() => submit('session')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
+
         {modal === 'department' && (
           <div className="space-y-3">
             <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
@@ -241,49 +273,79 @@ export default function AcademicSetup() {
             <Button disabled={submitting} onClick={() => submit('department')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
-        {modal === 'course' && (
+
+        {modal === 'class' && (
           <div className="space-y-3">
-            <Select label="Department" value={form.departmentId || ''} onChange={(e) => set('departmentId', e.target.value)}>
+            <Select label="Department *" value={form.departmentId || ''} onChange={(e) => set('departmentId', e.target.value)}>
               <option value="">Select department</option>
               {data.departments?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
             </Select>
-            <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
+            <Input label="Class Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="e.g. 9th, Nursery, First Year" />
             <Input label="Code" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
-            <Button disabled={submitting} onClick={() => submit('course')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <Input label="Registration Fee (PKR)" type="number" value={form.registrationFee ?? 0} onChange={(e) => set('registrationFee', e.target.value)} />
+            <Input label="Monthly Fee (PKR)" type="number" value={form.monthlyFee ?? 0} onChange={(e) => set('monthlyFee', e.target.value)} />
+            <p className="text-xs text-gray-500">These fees apply to all batches under this class. Students inherit them automatically on admission.</p>
+            <Button disabled={submitting} onClick={() => submit('class')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
+
         {modal === 'subject' && (
           <div className="space-y-3">
-            <Select label="Course" value={form.courseId || ''} onChange={(e) => set('courseId', e.target.value)}>
-              <option value="">Select course</option>
-              {data.departments?.flatMap((d) => d.courses?.map((c) => (
-                <option key={c.id} value={c.id}>{d.name} — {c.name}</option>
-              )) || [])}
+            <Select label="Class *" value={form.classId || ''} onChange={(e) => set('classId', e.target.value)}>
+              <option value="">Select class</option>
+              {data.classes?.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.department?.name})</option>)}
             </Select>
-            <Input label="Subject Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
-            <Input label="Code" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
+            <Input label="Subject Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
+            <Input label="Code *" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
+            <p className="text-xs text-gray-500">All batches of this class automatically use these subjects.</p>
             <Button disabled={submitting} onClick={() => submit('subject')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
+
         {modal === 'batch' && (
           <div className="space-y-3">
-            <Input label="Class/Batch Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
-            <Input label="Year" type="number" value={form.year ?? ''} onChange={(e) => set('year', Number(e.target.value))} />
-            <Select label="Session" value={form.sessionId || ''} onChange={(e) => set('sessionId', e.target.value)}>
-              <option value="">Optional</option>
+            <Select label="Academic Session *" value={form.sessionId || ''} onChange={(e) => set('sessionId', e.target.value)}>
+              <option value="">Select session</option>
               {data.sessions?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </Select>
+            <Select label="Department *" value={form.departmentId || selectedClass?.departmentId || ''} onChange={(e) => { set('departmentId', e.target.value); set('classId', ''); }}>
+              <option value="">Select department</option>
+              {data.departments?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </Select>
+            <Select label="Class *" value={form.classId || ''} onChange={(e) => set('classId', e.target.value)}>
+              <option value="">Select class</option>
+              {(form.departmentId || selectedClass?.departmentId
+                ? data.classes?.filter((c) => c.departmentId === (form.departmentId || selectedClass?.departmentId))
+                : data.classes)?.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+            {selectedClass && (
+              <div className="rounded bg-blue-50 p-3 text-xs text-blue-800">
+                <p className="font-medium">Inherited from {selectedClass.name}</p>
+                <p>Fees: Reg {Number(selectedClass.registrationFee).toLocaleString()} · Monthly {Number(selectedClass.monthlyFee).toLocaleString()} PKR</p>
+                <p>Subjects: {selectedClass.subjects?.map((s) => s.name).join(', ') || 'None yet'}</p>
+              </div>
+            )}
+            <Input label="Batch Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="e.g. 9th Morning 2025" />
+            {!editId && (
+              <>
+                <Input label="Section Name (optional)" value={form.sectionName || ''} onChange={(e) => set('sectionName', e.target.value)} placeholder="e.g. A" />
+                <Input label="Capacity" type="number" value={form.capacity ?? ''} onChange={(e) => set('capacity', e.target.value)} />
+              </>
+            )}
             <Button disabled={submitting} onClick={() => submit('batch')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
+
         {modal === 'section' && (
           <div className="space-y-3">
-            <Select label="Batch/Class" value={form.batchId || ''} onChange={(e) => set('batchId', e.target.value)}>
+            <Select label="Batch *" value={form.batchId || ''} onChange={(e) => set('batchId', e.target.value)}>
               <option value="">Select batch</option>
               {data.batches?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </Select>
-            <Input label="Section" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
-            <Input label="Capacity" type="number" value={form.capacity ?? ''} onChange={(e) => set('capacity', Number(e.target.value))} />
+            <Input label="Section *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
+            <Input label="Capacity" type="number" value={form.capacity ?? ''} onChange={(e) => set('capacity', e.target.value)} />
             <Button disabled={submitting} onClick={() => submit('section')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}

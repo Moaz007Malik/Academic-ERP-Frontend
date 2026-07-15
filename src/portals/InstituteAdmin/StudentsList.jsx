@@ -27,6 +27,7 @@ export default function StudentsList() {
   const [form, setForm] = useState({ createPortalAccount: true });
   const [error, setError] = useState('');
   const [revealedCreds, setRevealedCreds] = useState(null);
+  const [feePreview, setFeePreview] = useState(null);
   const { submitting, run } = useAsyncSubmit();
 
   useEffect(() => {
@@ -69,9 +70,28 @@ export default function StudentsList() {
       createPortalAccount: true,
       currentBatchId: filters.batchId || '',
       currentSectionId: filters.sectionId || '',
+      registrationDiscount: 0,
+      monthlyDiscount: 0,
     });
+    setFeePreview(null);
     setError('');
     setOpen(true);
+    if (filters.batchId) loadFeePreview(filters.batchId);
+  };
+
+  const loadFeePreview = (batchId) => {
+    if (!batchId) { setFeePreview(null); return; }
+    api.get('/admin/students/fee-preview', { params: { batchId } })
+      .then((res) => setFeePreview(res.data.data))
+      .catch(() => setFeePreview(null));
+  };
+
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const setBatch = (batchId) => {
+    set('currentBatchId', batchId);
+    set('currentSectionId', '');
+    loadFeePreview(batchId);
   };
 
   const openEdit = (s) => {
@@ -88,11 +108,10 @@ export default function StudentsList() {
       currentSectionId: s.currentSectionId || '',
       status: s.status || 'ACTIVE',
     });
+    setFeePreview(null);
     setError('');
     setOpen(true);
   };
-
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -197,14 +216,31 @@ export default function StudentsList() {
             <option value="MALE">Male</option>
             <option value="FEMALE">Female</option>
           </Select>
-          <Select label="Class/Batch" value={form.currentBatchId || ''} onChange={(e) => { set('currentBatchId', e.target.value); set('currentSectionId', ''); }}>
+          <Select label="Class/Batch" value={form.currentBatchId || ''} onChange={(e) => setBatch(e.target.value)}>
             <option value="">Select class</option>
-            {structure.batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {structure.batches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.academicClass ? ` (${b.academicClass.name})` : ''}</option>)}
           </Select>
           <Select label="Section" value={form.currentSectionId || ''} onChange={(e) => set('currentSectionId', e.target.value)}>
             <option value="">Select section</option>
             {formSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
+          {!editId && feePreview && (
+            <div className="col-span-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+              <p className="mb-2 font-medium text-blue-900">Fees from class: {feePreview.className || '—'}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <p>Registration Fee: <strong>{Number(feePreview.registrationFee).toLocaleString()} PKR</strong> (auto)</p>
+                <p>Monthly Fee: <strong>{Number(feePreview.monthlyFee).toLocaleString()} PKR</strong> (auto)</p>
+                <Input label="Registration Discount" type="number" value={form.registrationDiscount ?? 0}
+                  onChange={(e) => set('registrationDiscount', e.target.value)} />
+                <Input label="Monthly Discount" type="number" value={form.monthlyDiscount ?? 0}
+                  onChange={(e) => set('monthlyDiscount', e.target.value)} />
+              </div>
+              <p className="mt-2 text-xs text-blue-800">
+                Net payable — Registration: {Math.max(0, Number(feePreview.registrationFee) - Number(form.registrationDiscount || 0)).toLocaleString()} PKR
+                · Monthly: {Math.max(0, Number(feePreview.monthlyFee) - Number(form.monthlyDiscount || 0)).toLocaleString()} PKR
+              </p>
+            </div>
+          )}
           {editId && (
             <Select label="Status" value={form.status || 'ACTIVE'} onChange={(e) => set('status', e.target.value)}>
               {STATUS_OPTIONS.map((st) => <option key={st} value={st}>{st}</option>)}
