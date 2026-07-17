@@ -80,18 +80,21 @@ export default function TeacherDetail() {
           {t.assignments?.length ? (
             <div className="grid gap-2 sm:grid-cols-2">
               {t.assignments.map((a) => (
-                <div key={a.id} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
-                  {a.section?.batch?.name} — Section {a.section?.name} · {a.subject?.name}
+                <div key={a.id} className="rounded-xl border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm">
+                  <span className="font-medium text-gray-800">{a.section?.batch?.name} — Section {a.section?.name}</span>
+                  <span className="text-gray-500"> · {a.subject?.name}</span>
                 </div>
               ))}
             </div>
           ) : <EmptyState title="No assignments" />}
           {t.individualCourses?.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-5 border-t border-gray-100 pt-4">
               <h4 className="mb-2 text-sm font-semibold text-gray-700">Individual Courses</h4>
-              {t.individualCourses.map((c) => (
-                <div key={c.id} className="text-sm text-gray-600">{c.course?.name} ({c.course?.code})</div>
-              ))}
+              <div className="flex flex-wrap gap-2">
+                {t.individualCourses.map((c) => (
+                  <span key={c.id} className="rounded-full bg-primary-50 px-3 py-1 text-xs text-primary-800">{c.course?.name} ({c.course?.code})</span>
+                ))}
+              </div>
             </div>
           )}
         </SectionCard>
@@ -100,29 +103,40 @@ export default function TeacherDetail() {
       {tab === 'salary' && (
         <SectionCard title="Salary History">
           {t.salaries?.length ? (
-            <table className="min-w-full text-sm">
-              <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="py-2">Period</th><th>Gross</th><th>Net</th></tr></thead>
-              <tbody>
-                {t.salaries.map((sal) => (
-                  <tr key={sal.id} className="border-b border-gray-100">
-                    <td className="py-2">{sal.month}/{sal.year}</td>
-                    <td>{Number(sal.amount).toLocaleString()}</td>
-                    <td>{Number(sal.netAmount).toLocaleString()}</td>
+            <div className="overflow-x-auto rounded-lg border border-gray-100">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2.5">Period</th><th className="px-3 py-2.5">Gross</th><th className="px-3 py-2.5">Net</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {t.salaries.map((sal) => (
+                    <tr key={sal.id} className="transition hover:bg-gray-50/70">
+                      <td className="px-3 py-2.5">{sal.month}/{sal.year}</td>
+                      <td className="px-3 py-2.5">{Number(sal.amount).toLocaleString()} PKR</td>
+                      <td className="px-3 py-2.5 font-medium">{Number(sal.netAmount).toLocaleString()} PKR</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : <EmptyState title="No salary records" />}
         </SectionCard>
       )}
 
       {tab === 'leave' && (
         <SectionCard title="Leave History">
-          {t.leaveRequests?.length ? t.leaveRequests.map((l) => (
-            <div key={l.id} className="border-b border-gray-100 py-2 text-sm">
-              {l.leaveType || 'Leave'} — {l.status} · {new Date(l.createdAt).toLocaleDateString()}
+          {t.leaveRequests?.length ? (
+            <div className="space-y-1">
+              {t.leaveRequests.map((l) => (
+                <div key={l.id} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition hover:bg-gray-50">
+                  <span className="text-gray-700">{l.leaveType || 'Leave'}</span>
+                  <span className="text-xs text-gray-400">{l.status} · {new Date(l.createdAt).toLocaleDateString()}</span>
+                </div>
+              ))}
             </div>
-          )) : <EmptyState title="No leave requests" />}
+          ) : <EmptyState title="No leave requests" />}
         </SectionCard>
       )}
 
@@ -134,12 +148,17 @@ export default function TeacherDetail() {
 
       {tab === 'timeline' && (
         <SectionCard title="Timeline">
-          {profile.timeline?.length ? profile.timeline.map((ev, i) => (
-            <div key={i} className="flex gap-3 border-b border-gray-100 py-2 text-sm">
-              <span className="text-gray-400">{new Date(ev.date).toLocaleDateString()}</span>
-              <span>{ev.text}</span>
-            </div>
-          )) : <EmptyState title="No activity" />}
+          {profile.timeline?.length ? (
+            <ul className="space-y-3 border-l-2 border-gray-100 pl-4">
+              {profile.timeline.map((ev, i) => (
+                <li key={i} className="relative text-sm">
+                  <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary-400" />
+                  <span className="mr-2 text-gray-400">{new Date(ev.date).toLocaleDateString()}</span>
+                  <span className="text-gray-700">{ev.text}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <EmptyState title="No activity" />}
         </SectionCard>
       )}
     </DetailPageLayout>

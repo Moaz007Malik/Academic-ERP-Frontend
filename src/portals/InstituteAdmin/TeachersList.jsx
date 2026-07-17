@@ -128,28 +128,36 @@ export default function TeachersList() {
     load();
   };
 
+  const initials = (t) => `${(t.firstName || '?')[0]}${(t.lastName || '')[0] || ''}`.toUpperCase();
+
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <PageTitle title="Teachers" />
-        <Button onClick={openAdd}>+ Add Teacher</Button>
+        <Button onClick={openAdd} className="shadow-sm">+ Add Teacher</Button>
       </div>
-      {error && !open && !assignOpen && <p className="mb-2 text-sm text-red-600">{error}</p>}
+      {error && !open && !assignOpen && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
-      {loading ? <p className="text-gray-500">Loading...</p> : (
+      {loading ? <p className="text-sm text-gray-500">Loading...</p> : (
         <div className="space-y-4">
+          {!teachers.length && <p className="text-sm text-gray-400">No teachers added yet.</p>}
           {teachers.map((t) => (
-            <div key={t.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold">
-                    <Link to={`/admin/teachers/${t.id}`} className="hover:text-primary-700">{t.firstName} {t.lastName}</Link>
-                  </h3>
-                  <p className="text-sm text-gray-500">{t.employeeCode} · {t.user?.email || 'No portal account'}</p>
-                  {t.user?.portalPassword && (
-                    <p className="text-sm font-mono text-gray-600">Password: {t.user.portalPassword}</p>
-                  )}
-                  <p className="text-sm text-gray-500">{t.qualification} {t.specialization && `· ${t.specialization}`}</p>
+            <div key={t.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 font-semibold text-primary-700">
+                    {initials(t)}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      <Link to={`/admin/teachers/${t.id}`} className="hover:text-primary-700">{t.firstName} {t.lastName}</Link>
+                    </h3>
+                    <p className="text-sm text-gray-500">{t.employeeCode} · {t.user?.email || 'No portal account'}</p>
+                    {t.user?.portalPassword && (
+                      <p className="font-mono text-xs text-gray-400">Password: {t.user.portalPassword}</p>
+                    )}
+                    <p className="text-sm text-gray-500">{t.qualification} {t.specialization && `· ${t.specialization}`}</p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="success">{t.status}</Badge>
@@ -159,11 +167,11 @@ export default function TeachersList() {
                 </div>
               </div>
               {t.assignments?.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3">
                   {t.assignments.map((a) => (
-                    <span key={a.id} className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1 text-xs text-primary-800">
+                    <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs text-primary-800">
                       {a.section?.batch?.name} {a.section?.name} — {a.subject?.name}
-                      <button type="button" className="text-red-500" onClick={() => removeAssignment(a.id)}>×</button>
+                      <button type="button" className="font-bold text-red-500 hover:text-red-700" onClick={() => removeAssignment(a.id)}>×</button>
                     </span>
                   ))}
                 </div>
@@ -175,7 +183,7 @@ export default function TeachersList() {
 
       <Modal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit Teacher' : 'Add Teacher'} wide>
         <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
-          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="col-span-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
           <Input label="First Name *" value={form.firstName || ''} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
           <Input label="Last Name *" value={form.lastName || ''} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
           <Input label="Employee Code" value={form.employeeCode || ''} onChange={(e) => setForm({ ...form, employeeCode: e.target.value })} />
@@ -192,14 +200,14 @@ export default function TeachersList() {
             </>
           )}
           <div className="col-span-2">
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Teacher' : 'Create Teacher'}</Button>
+            <Button type="submit" disabled={submitting} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update Teacher' : 'Create Teacher'}</Button>
           </div>
         </form>
       </Modal>
 
       <Modal open={!!assignOpen} onClose={() => setAssignOpen(null)} title={`Assign — ${assignOpen?.firstName}`}>
         <form onSubmit={handleAssign} className="space-y-3">
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
           <Select label="Section" value={assignForm.sectionId || ''} onChange={(e) => setAssignForm({ ...assignForm, sectionId: e.target.value })} required>
             <option value="">Select section</option>
             {structure.sections?.map((s) => (
@@ -212,7 +220,7 @@ export default function TeachersList() {
               <option key={s.id} value={s.id}>{s.deptName} / {s.courseName} — {s.name}</option>
             ))}
           </Select>
-          <Button type="submit" disabled={assigning}>{assigning ? 'Assigning...' : 'Assign'}</Button>
+          <Button type="submit" disabled={assigning} className="w-full sm:w-auto">{assigning ? 'Assigning...' : 'Assign'}</Button>
         </form>
       </Modal>
 

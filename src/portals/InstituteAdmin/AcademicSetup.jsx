@@ -125,19 +125,26 @@ export default function AcademicSetup() {
   return (
     <>
       <PageTitle title="Academic Setup" subtitle="Session → Department → Class → Subjects → Batch/Section" />
-      {msg && <p className="mb-2 text-sm text-green-600">{msg}</p>}
-      {error && !modal && <p className="mb-2 text-sm text-red-600">{error}</p>}
+      {msg && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          <span>✓</span> {msg}
+        </div>
+      )}
+      {error && !modal && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-2">
         {STEPS.map((label, i) => (
           <button key={label} type="button" onClick={() => setStep(i)}
-            className={`rounded-full px-4 py-2 text-sm ${step === i ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-            {i + 1}. {label}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${step === i ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
+            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${step === i ? 'bg-white/25' : 'bg-white text-gray-500'}`}>{i + 1}</span>
+            {label}
           </button>
         ))}
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
         {step === 0 && <Button onClick={() => openAdd('session', { isActive: true })}>+ Session</Button>}
         {step === 1 && <Button onClick={() => openAdd('department')}>+ Department</Button>}
         {step === 2 && (
@@ -157,14 +164,20 @@ export default function AcademicSetup() {
         )}
       </div>
 
-      {loading ? <p className="text-gray-500">Loading...</p> : (
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading...</p>
+      ) : (
         <div className="grid gap-6 lg:grid-cols-2">
           {step === 0 && (
             <Card title="Sessions">
+              {!data.sessions?.length && <p className="py-6 text-center text-sm text-gray-400">No sessions yet.</p>}
               <ul className="divide-y divide-gray-100 text-sm">
                 {data.sessions?.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-2 py-2">
-                    <span>{s.name} {s.isActive && <span className="text-xs text-green-600">(Active)</span>}</span>
+                  <li key={s.id} className="flex items-center justify-between gap-2 py-3">
+                    <span className="flex items-center gap-2">
+                      {s.name}
+                      {s.isActive && <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Active</span>}
+                    </span>
                     <RowActions onEdit={() => openEdit('session', s)} onDelete={() => remove('session', s.id, s.name)} />
                   </li>
                 ))}
@@ -174,10 +187,11 @@ export default function AcademicSetup() {
 
           {step === 1 && (
             <Card title="Departments" className="lg:col-span-2">
+              {!data.departments?.length && <p className="py-6 text-center text-sm text-gray-400">No departments yet.</p>}
               <ul className="divide-y divide-gray-100 text-sm">
                 {data.departments?.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-2 py-2">
-                    <span>{d.name} ({d.code})</span>
+                  <li key={d.id} className="flex items-center justify-between gap-2 py-3">
+                    <span className="font-medium text-gray-800">{d.name} <span className="font-normal text-gray-400">({d.code})</span></span>
                     <RowActions onEdit={() => openEdit('department', d)} onDelete={() => remove('department', d.id, d.name)} />
                   </li>
                 ))}
@@ -187,27 +201,27 @@ export default function AcademicSetup() {
 
           {step === 2 && (
             <Card title="Classes & Subjects" className="lg:col-span-2">
-              {!data.classes?.length && <p className="text-sm text-gray-500">No classes yet. Create a class to add subjects and fees.</p>}
+              {!data.classes?.length && <p className="py-6 text-center text-sm text-gray-400">No classes yet. Create a class to add subjects and fees.</p>}
               {data.classes?.map((cls) => (
-                <div key={cls.id} className="mb-4 border-b border-gray-100 pb-3 last:border-0">
+                <div key={cls.id} className="mb-4 rounded-xl border border-gray-100 bg-gray-50/60 p-4 last:mb-0">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium text-sm">{cls.name} <span className="text-gray-400">({cls.department?.name})</span></p>
-                      <p className="text-xs text-gray-500">
-                        Registration: {Number(cls.registrationFee).toLocaleString()} PKR · Monthly: {Number(cls.monthlyFee).toLocaleString()} PKR
-                        · {cls.subjects?.length || 0} subjects · {cls._count?.batches || 0} batches
+                      <p className="font-semibold text-gray-900">{cls.name} <span className="font-normal text-gray-400">({cls.department?.name})</span></p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Registration: <span className="font-medium text-gray-700">{Number(cls.registrationFee).toLocaleString()} PKR</span> · Monthly: <span className="font-medium text-gray-700">{Number(cls.monthlyFee).toLocaleString()} PKR</span>
+                        {' '}· {cls.subjects?.length || 0} subjects · {cls._count?.batches || 0} batches
                       </p>
                     </div>
                     <RowActions onEdit={() => openEdit('class', cls)} onDelete={() => remove('class', cls.id, cls.name)} />
                   </div>
-                  <div className="ml-3 mt-2 space-y-1">
+                  <div className="ml-3 mt-3 space-y-1.5 border-l-2 border-gray-200 pl-3">
                     {cls.subjects?.map((sub) => (
                       <div key={sub.id} className="flex items-center justify-between text-xs text-gray-600">
-                        <span>{sub.name} ({sub.code})</span>
+                        <span>{sub.name} <span className="text-gray-400">({sub.code})</span></span>
                         <RowActions onEdit={() => openEdit('subject', { ...sub, classId: cls.id })} onDelete={() => remove('subject', sub.id, sub.name)} />
                       </div>
                     ))}
-                    <button type="button" className="text-xs text-blue-600" onClick={() => openAdd('subject', { classId: cls.id })}>+ Add subject</button>
+                    <button type="button" className="text-xs font-medium text-primary-600 hover:underline" onClick={() => openAdd('subject', { classId: cls.id })}>+ Add subject</button>
                   </div>
                 </div>
               ))}
@@ -217,12 +231,13 @@ export default function AcademicSetup() {
           {step === 3 && (
             <>
               <Card title="Batches">
+                {!data.batches?.length && <p className="py-6 text-center text-sm text-gray-400">No batches yet.</p>}
                 <ul className="divide-y divide-gray-100 text-sm">
                   {data.batches?.map((b) => (
-                    <li key={b.id} className="py-2">
+                    <li key={b.id} className="py-3">
                       <div className="flex items-center justify-between gap-2">
                         <div>
-                          <p className="font-medium">{b.name}</p>
+                          <p className="font-medium text-gray-900">{b.name}</p>
                           <p className="text-xs text-gray-500">
                             {b.session?.name} · {b.academicClass?.department?.name} · {b.academicClass?.name || 'No class'}
                           </p>
@@ -239,10 +254,11 @@ export default function AcademicSetup() {
                 </ul>
               </Card>
               <Card title="Sections">
+                {!data.sections?.length && <p className="py-6 text-center text-sm text-gray-400">No sections yet.</p>}
                 <ul className="divide-y divide-gray-100 text-sm">
                   {data.sections?.map((s) => (
-                    <li key={s.id} className="flex items-center justify-between gap-2 py-2">
-                      <span>{s.batch?.name} — Section {s.name} {s.capacity != null && `(cap: ${s.capacity})`}</span>
+                    <li key={s.id} className="flex items-center justify-between gap-2 py-3">
+                      <span>{s.batch?.name} — Section <span className="font-medium">{s.name}</span> {s.capacity != null && <span className="text-xs text-gray-400">(cap: {s.capacity})</span>}</span>
                       <RowActions onEdit={() => openEdit('section', s)} onDelete={() => remove('section', s.id, `Section ${s.name}`)} />
                     </li>
                   ))}
@@ -254,15 +270,17 @@ export default function AcademicSetup() {
       )}
 
       <Modal open={!!modal} onClose={closeModal} title={`${editId ? 'Edit' : 'Add'} ${modal}`}>
-        {error && modal && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && modal && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
         {modal === 'session' && (
           <div className="space-y-3">
             <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="2024-2025" />
             <Input label="Start Date" type="date" value={form.startDate || ''} onChange={(e) => set('startDate', e.target.value)} />
             <Input label="End Date" type="date" value={form.endDate || ''} onChange={(e) => set('endDate', e.target.value)} />
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!form.isActive} onChange={(e) => set('isActive', e.target.checked)} /> Set as active session</label>
-            <Button disabled={submitting} onClick={() => submit('session')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <label className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+              <input type="checkbox" className="h-4 w-4 rounded text-primary-600" checked={!!form.isActive} onChange={(e) => set('isActive', e.target.checked)} /> Set as active session
+            </label>
+            <Button disabled={submitting} onClick={() => submit('session')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
 
@@ -270,7 +288,7 @@ export default function AcademicSetup() {
           <div className="space-y-3">
             <Input label="Name" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
             <Input label="Code" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
-            <Button disabled={submitting} onClick={() => submit('department')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <Button disabled={submitting} onClick={() => submit('department')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
 
@@ -282,10 +300,12 @@ export default function AcademicSetup() {
             </Select>
             <Input label="Class Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="e.g. 9th, Nursery, First Year" />
             <Input label="Code" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
-            <Input label="Registration Fee (PKR)" type="number" value={form.registrationFee ?? 0} onChange={(e) => set('registrationFee', e.target.value)} />
-            <Input label="Monthly Fee (PKR)" type="number" value={form.monthlyFee ?? 0} onChange={(e) => set('monthlyFee', e.target.value)} />
-            <p className="text-xs text-gray-500">These fees apply to all batches under this class. Students inherit them automatically on admission.</p>
-            <Button disabled={submitting} onClick={() => submit('class')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label="Registration Fee (PKR)" type="number" value={form.registrationFee ?? 0} onChange={(e) => set('registrationFee', e.target.value)} />
+              <Input label="Monthly Fee (PKR)" type="number" value={form.monthlyFee ?? 0} onChange={(e) => set('monthlyFee', e.target.value)} />
+            </div>
+            <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">These fees apply to all batches under this class. Students inherit them automatically on admission.</p>
+            <Button disabled={submitting} onClick={() => submit('class')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
 
@@ -297,8 +317,8 @@ export default function AcademicSetup() {
             </Select>
             <Input label="Subject Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
             <Input label="Code *" value={form.code || ''} onChange={(e) => set('code', e.target.value)} />
-            <p className="text-xs text-gray-500">All batches of this class automatically use these subjects.</p>
-            <Button disabled={submitting} onClick={() => submit('subject')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">All batches of this class automatically use these subjects.</p>
+            <Button disabled={submitting} onClick={() => submit('subject')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
 
@@ -321,20 +341,20 @@ export default function AcademicSetup() {
               ))}
             </Select>
             {selectedClass && (
-              <div className="rounded bg-blue-50 p-3 text-xs text-blue-800">
-                <p className="font-medium">Inherited from {selectedClass.name}</p>
-                <p>Fees: Reg {Number(selectedClass.registrationFee).toLocaleString()} · Monthly {Number(selectedClass.monthlyFee).toLocaleString()} PKR</p>
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-800">
+                <p className="font-semibold">Inherited from {selectedClass.name}</p>
+                <p className="mt-1">Fees: Reg {Number(selectedClass.registrationFee).toLocaleString()} · Monthly {Number(selectedClass.monthlyFee).toLocaleString()} PKR</p>
                 <p>Subjects: {selectedClass.subjects?.map((s) => s.name).join(', ') || 'None yet'}</p>
               </div>
             )}
             <Input label="Batch Name *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} placeholder="e.g. 9th Morning 2025" />
             {!editId && (
-              <>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Input label="Section Name (optional)" value={form.sectionName || ''} onChange={(e) => set('sectionName', e.target.value)} placeholder="e.g. A" />
                 <Input label="Capacity" type="number" value={form.capacity ?? ''} onChange={(e) => set('capacity', e.target.value)} />
-              </>
+              </div>
             )}
-            <Button disabled={submitting} onClick={() => submit('batch')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <Button disabled={submitting} onClick={() => submit('batch')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
 
@@ -346,7 +366,7 @@ export default function AcademicSetup() {
             </Select>
             <Input label="Section *" value={form.name || ''} onChange={(e) => set('name', e.target.value)} />
             <Input label="Capacity" type="number" value={form.capacity ?? ''} onChange={(e) => set('capacity', e.target.value)} />
-            <Button disabled={submitting} onClick={() => submit('section')}>{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
+            <Button disabled={submitting} onClick={() => submit('section')} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update' : 'Save'}</Button>
           </div>
         )}
       </Modal>
@@ -356,7 +376,7 @@ export default function AcademicSetup() {
 
 function Card({ title, children, className = '' }) {
   return (
-    <div className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${className}`}>
+    <div className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm ${className}`}>
       <h3 className="mb-3 font-semibold text-gray-900">{title}</h3>
       {children}
     </div>

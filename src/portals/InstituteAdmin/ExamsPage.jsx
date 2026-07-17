@@ -108,9 +108,9 @@ export default function ExamsPage() {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <PageTitle title="Exams" subtitle="Schedule exams and publish results for student portals" />
-        <Button onClick={openAdd}>+ Create Exam</Button>
+        <Button onClick={openAdd} className="shadow-sm">+ Create Exam</Button>
       </div>
-      {error && !open && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      {error && !open && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       {loading ? (
         <p className="text-sm text-gray-500">Loading exams...</p>
@@ -122,6 +122,7 @@ export default function ExamsPage() {
             <SectionCard
               key={ex.id}
               title={ex.name}
+              className="transition hover:-translate-y-0.5 hover:shadow-md"
               action={<Badge variant={ex.isPublished ? 'success' : 'warning'}>{ex.isPublished ? 'Published' : 'Draft'}</Badge>}
             >
               <div className="space-y-3 text-sm">
@@ -160,7 +161,7 @@ export default function ExamsPage() {
 
       <Modal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit Exam' : 'Create Exam'} wide>
         <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
-          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="col-span-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
           <Input label="Exam Name *" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="col-span-2" />
           <Select label="Exam Type" value={form.examType} onChange={(e) => setForm({ ...form, examType: e.target.value })}>
             {EXAM_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
@@ -178,7 +179,7 @@ export default function ExamsPage() {
           <Input label="Start Date" type="date" value={form.startDate || ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
           <Input label="End Date" type="date" value={form.endDate || ''} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
           <div className="col-span-2">
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Exam' : 'Create Exam'}</Button>
+            <Button type="submit" disabled={submitting} className="w-full sm:w-auto">{submitting ? 'Saving...' : editId ? 'Update Exam' : 'Create Exam'}</Button>
           </div>
         </form>
       </Modal>

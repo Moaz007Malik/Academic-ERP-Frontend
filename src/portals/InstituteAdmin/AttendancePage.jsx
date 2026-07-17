@@ -17,10 +17,10 @@ const STATUS_STYLE = {
 };
 
 const STATUS_BTN = {
-  PRESENT: 'border-green-300 bg-green-50 text-green-800',
-  ABSENT: 'border-red-300 bg-red-50 text-red-800',
-  LATE: 'border-amber-300 bg-amber-50 text-amber-800',
-  LEAVE: 'border-blue-300 bg-blue-50 text-blue-800',
+  PRESENT: 'border-green-300 bg-green-50 text-green-800 ring-1 ring-green-200',
+  ABSENT: 'border-red-300 bg-red-50 text-red-800 ring-1 ring-red-200',
+  LATE: 'border-amber-300 bg-amber-50 text-amber-800 ring-1 ring-amber-200',
+  LEAVE: 'border-blue-300 bg-blue-50 text-blue-800 ring-1 ring-blue-200',
 };
 
 export default function AttendancePage() {
@@ -110,14 +110,18 @@ export default function AttendancePage() {
     setRecords(next);
   };
 
+  const attendancePct = markSummary.total ? Math.round((markSummary.PRESENT / markSummary.total) * 100) : 0;
+
   return (
     <>
       <PageTitle title="Attendance" subtitle="Mark and review daily class attendance" />
       {msg && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">{msg}</div>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          <span>✓</span> {msg}
+        </div>
       )}
 
-      <div className="mb-4 flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+      <div className="mb-5 flex gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
         {['mark', 'view'].map((t) => (
           <button
             key={t}
@@ -144,13 +148,13 @@ export default function AttendancePage() {
           </Select>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
-            <input type="date" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
+            <input type="date" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
         </div>
       </SectionCard>
 
       {tab === 'mark' && sectionId && subjectId && students.length > 0 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-5 space-y-4">
           <StatGrid cols={4}>
             <StatCard label="Present" value={markSummary.PRESENT} variant="success" />
             <StatCard label="Absent" value={markSummary.ABSENT} variant="danger" />
@@ -158,15 +162,22 @@ export default function AttendancePage() {
             <StatCard label="Leave" value={markSummary.LEAVE} variant="info" />
           </StatGrid>
 
-          <div className="flex flex-wrap gap-2">
-            {STATUSES.map((st) => (
-              <button key={st} type="button" onClick={() => setAll(st)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${STATUS_BTN[st]}`}>
-                Mark all {st.toLowerCase()}
-              </button>
-            ))}
+          <div className="overflow-hidden rounded-full bg-gray-100">
+            <div className="h-1.5 rounded-full bg-green-500 transition-all" style={{ width: `${attendancePct}%` }} />
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Quick actions</p>
+            <div className="flex flex-wrap gap-2">
+              {STATUSES.map((st) => (
+                <button key={st} type="button" onClick={() => setAll(st)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:brightness-95 ${STATUS_BTN[st]}`}>
+                  Mark all {st.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -177,7 +188,7 @@ export default function AttendancePage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {students.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50/80">
+                  <tr key={s.id} className="transition hover:bg-gray-50/80">
                     <td className="px-4 py-3 font-mono text-xs text-gray-600">{s.rollNumber}</td>
                     <td className="px-4 py-3 font-medium text-gray-900">{s.firstName} {s.lastName}</td>
                     <td className="px-4 py-3">
@@ -199,16 +210,18 @@ export default function AttendancePage() {
               </tbody>
             </table>
           </div>
-          <Button disabled={submitting} onClick={save}>{submitting ? 'Saving...' : 'Save Attendance'}</Button>
+          <div className="sticky bottom-4 flex justify-end">
+            <Button disabled={submitting} onClick={save} className="shadow-lg">{submitting ? 'Saving...' : 'Save Attendance'}</Button>
+          </div>
         </div>
       )}
 
       {tab === 'mark' && sectionId && subjectId && students.length === 0 && (
-        <div className="mt-4"><EmptyState title="No students in this section" /></div>
+        <div className="mt-5"><EmptyState title="No students in this section" /></div>
       )}
 
       {tab === 'view' && sectionId && subjectId && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-5 space-y-4">
           {savedRecords.length > 0 && (
             <StatGrid cols={4}>
               <StatCard label="Present" value={viewSummary.PRESENT} variant="success" />
@@ -217,7 +230,7 @@ export default function AttendancePage() {
               <StatCard label="Leave" value={viewSummary.LEAVE} variant="info" />
             </StatGrid>
           )}
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -226,11 +239,11 @@ export default function AttendancePage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {savedRecords.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-10 text-center text-gray-500">No attendance marked for this date yet</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-12 text-center text-gray-400">No attendance marked for this date yet</td></tr>
                 ) : savedRecords.map((r) => (
-                  <tr key={r.id} className="border-b border-gray-100">
+                  <tr key={r.id} className="transition hover:bg-gray-50/70">
                     <td className="px-4 py-3 font-mono text-xs">{r.student?.rollNumber}</td>
                     <td className="px-4 py-3 font-medium">{r.student?.firstName} {r.student?.lastName}</td>
                     <td className="px-4 py-3"><Badge variant={STATUS_STYLE[r.status] || 'default'}>{r.status}</Badge></td>
@@ -243,7 +256,7 @@ export default function AttendancePage() {
       )}
 
       {(!sectionId || !subjectId) && (
-        <div className="mt-4"><EmptyState title="Select section and subject" message="Choose filters above to mark or view attendance." /></div>
+        <div className="mt-5"><EmptyState title="Select section and subject" message="Choose filters above to mark or view attendance." /></div>
       )}
     </>
   );

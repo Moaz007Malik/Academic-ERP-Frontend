@@ -46,17 +46,17 @@ export default function TicketsPage() {
   return (
     <>
       <PageTitle title="Support Tickets" subtitle="Student & teacher requests appear here first. Resolve locally or forward technical issues to Super Admin." />
-      <div className="mb-4 flex justify-end">
-        <Button onClick={() => setShowForm(!showForm)}>New Platform Ticket</Button>
+      <div className="mb-5 flex justify-end">
+        <Button onClick={() => setShowForm(!showForm)} className="shadow-sm">{showForm ? 'Cancel' : 'New Platform Ticket'}</Button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-xl border border-gray-200 bg-white p-5">
+        <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <Input label="Subject" required value={form.subject}
             onChange={(e) => setForm({ ...form, subject: e.target.value })} />
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
-            <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            <select className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               <option value="SUBSCRIPTION">Subscription</option>
               <option value="LOGO_UPDATE">Logo Update</option>
@@ -66,32 +66,33 @@ export default function TicketsPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
-            <textarea className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" rows={3} required
+            <textarea className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" rows={3} required
               value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
-          <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Ticket'}</Button>
+          <Button type="submit" disabled={submitting} className="w-full sm:w-auto">{submitting ? 'Submitting...' : 'Submit Ticket'}</Button>
         </form>
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading tickets...</p>
+        <p className="text-sm text-gray-500">Loading tickets...</p>
       ) : tickets.length === 0 ? (
-        <p className="text-gray-500">No tickets yet.</p>
+        <p className="rounded-2xl border border-dashed border-gray-200 py-10 text-center text-sm text-gray-400">No tickets yet.</p>
       ) : (
         <div className="space-y-3">
           {tickets.map((t) => (
-            <div key={t.id} className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-medium">{t.subject}</h3>
-                <Badge variant={statusVariant[t.status]}>{t.status}</Badge>
+            <div key={t.id} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-medium text-gray-900">{t.subject}</h3>
+                <Badge variant={statusVariant[t.status]}>{t.status.replace('_', ' ')}</Badge>
               </div>
               <p className="mt-2 text-sm text-gray-600">{t.description}</p>
-              <p className="mt-1 text-xs text-gray-400">
-                {t.category} · {t.createdBy?.role && `${roleLabel[t.createdBy.role] || t.createdBy.role} · `}
-                {t.escalatedToSuperAdmin ? 'With Super Admin · ' : ''}
-                {new Date(t.createdAt).toLocaleString()}
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
+                <span className="rounded bg-gray-100 px-1.5 py-0.5">{t.category}</span>
+                {t.createdBy?.role && <span>{roleLabel[t.createdBy.role] || t.createdBy.role}</span>}
+                {t.escalatedToSuperAdmin && <span className="font-medium text-amber-600">With Super Admin</span>}
+                <span className="ml-auto">{new Date(t.createdAt).toLocaleString()}</span>
               </p>
-              <Link to={`/admin/tickets/${t.id}`} className="mt-2 inline-block text-sm text-blue-600 hover:underline">View Details →</Link>
+              <Link to={`/admin/tickets/${t.id}`} className="mt-2 inline-block text-sm font-medium text-primary-600 hover:underline">View Details →</Link>
             </div>
           ))}
         </div>

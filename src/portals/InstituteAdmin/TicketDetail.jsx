@@ -67,10 +67,10 @@ export default function TicketDetail() {
         <Link to="/admin/tickets"><Button variant="secondary">Back</Button></Link>
       </PageTitle>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Badge variant={statusVariant[ticket.status]}>{ticket.status}</Badge>
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <Badge variant={statusVariant[ticket.status]}>{ticket.status.replace('_', ' ')}</Badge>
         <Badge variant="default">{ticket.priority}</Badge>
-        <span className="text-sm text-gray-500">{ticket.category}</span>
+        <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">{ticket.category}</span>
         {ticket.createdBy?.role && (
           <Badge variant="info">From {roleLabel[ticket.createdBy.role] || ticket.createdBy.role}</Badge>
         )}
@@ -84,30 +84,30 @@ export default function TicketDetail() {
       )}
 
       {canEscalate && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="mb-2 text-sm text-amber-900">Technical / platform issue? Forward to Super Admin. Otherwise resolve it here.</p>
-          <textarea className="mb-2 w-full rounded-lg border px-3 py-2 text-sm" rows={2} placeholder="Note for Super Admin (optional)"
+          <textarea className="mb-2 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm transition focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400" rows={2} placeholder="Note for Super Admin (optional)"
             value={escalateNote} onChange={(e) => setEscalateNote(e.target.value)} />
           <Button variant="danger" onClick={escalateTicket} disabled={submitting}>Forward to Super Admin</Button>
         </div>
       )}
 
-      <div className="mb-6 space-y-4">
+      <div className="mb-6 space-y-3">
         {timeline.map((item, i) => (
-          <div key={i} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-              <span>{item.author?.firstName} {item.author?.lastName} {item.author?.role ? `(${item.author.role})` : ''}</span>
+          <div key={i} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-1.5 flex items-center justify-between text-xs text-gray-500">
+              <span className="font-medium text-gray-700">{item.author?.firstName} {item.author?.lastName} {item.author?.role ? <span className="font-normal text-gray-400">({item.author.role})</span> : ''}</span>
               <span>{new Date(item.at).toLocaleString()}</span>
             </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{item.message}</p>
+            <p className="whitespace-pre-wrap text-sm text-gray-800">{item.message}</p>
           </div>
         ))}
       </div>
 
       {ticket.status !== 'CLOSED' && (
-        <form onSubmit={sendReply} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <label className="mb-1 block text-sm font-medium">Reply</label>
-          <textarea className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" rows={3}
+        <form onSubmit={sendReply} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Reply</label>
+          <textarea className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" rows={3}
             value={reply} onChange={(e) => setReply(e.target.value)} required />
           <Button type="submit" disabled={submitting}>{submitting ? 'Sending...' : 'Send Reply'}</Button>
         </form>

@@ -98,11 +98,15 @@ export default function ResultsPage() {
     return { entered: subjectResults.length, passed, failed: subjectResults.length - passed, avgPct: pct };
   }, [subjectResults, selectedExam]);
 
+  const markInputClass = "w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500";
+
   return (
     <>
       <PageTitle title="Results Entry" subtitle="Enter theory, practical & internal marks" />
       {saved && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">{saved}</div>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">
+          <span>✓</span> {saved}
+        </div>
       )}
 
       <SectionCard title="Select Exam & Subject">
@@ -117,17 +121,20 @@ export default function ResultsPage() {
           </Select>
         </div>
         {selectedExam && (
-          <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">
-            Marking scheme: Theory {selectedExam.theoryMax} + Practical {selectedExam.practicalMax} + Internal {selectedExam.internalMax}
-            {' = '}{Number(selectedExam.theoryMax) + Number(selectedExam.practicalMax) + Number(selectedExam.internalMax)}
-            · Pass {selectedExam.passPercentage}%
-            {selectedExam.section && ` · ${selectedExam.section.batch?.name} — ${selectedExam.section.name}`}
-          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-primary-50/60 px-4 py-3 text-sm text-primary-900">
+            <Badge variant="info">Theory {selectedExam.theoryMax}</Badge>
+            <Badge variant="info">Practical {selectedExam.practicalMax}</Badge>
+            <Badge variant="info">Internal {selectedExam.internalMax}</Badge>
+            <span className="font-semibold">
+              = {Number(selectedExam.theoryMax) + Number(selectedExam.practicalMax) + Number(selectedExam.internalMax)} total
+            </span>
+            <span className="ml-auto text-primary-700">Pass {selectedExam.passPercentage}%{selectedExam.section && ` · ${selectedExam.section.batch?.name} — ${selectedExam.section.name}`}</span>
+          </div>
         )}
       </SectionCard>
 
       {summary && (
-        <div className="mt-4">
+        <div className="mt-5">
           <StatGrid cols={4}>
             <StatCard label="Entered" value={summary.entered} />
             <StatCard label="Passed" value={summary.passed} variant="success" />
@@ -138,8 +145,8 @@ export default function ResultsPage() {
       )}
 
       {examId && subjectId && students.length > 0 && (
-        <div className="mt-4 space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="mt-5 space-y-4">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -160,23 +167,23 @@ export default function ResultsPage() {
                   const i = Number(marks[s.id]?.internalMarks) || 0;
                   const liveTotal = t + p + i;
                   return (
-                    <tr key={s.id} className="hover:bg-gray-50/70">
+                    <tr key={s.id} className="transition hover:bg-gray-50/70">
                       <td className="px-3 py-2.5 font-mono text-xs text-gray-600">{s.rollNumber}</td>
                       <td className="px-3 py-2.5 font-medium">{s.firstName} {s.lastName}</td>
                       <td className="px-3 py-2.5">
-                        <input type="number" className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" value={marks[s.id]?.theoryMarks ?? ''} onChange={(e) => setMark(s.id, 'theoryMarks', e.target.value)} />
+                        <input type="number" className={markInputClass} value={marks[s.id]?.theoryMarks ?? ''} onChange={(e) => setMark(s.id, 'theoryMarks', e.target.value)} />
                       </td>
                       <td className="px-3 py-2.5">
-                        <input type="number" className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" value={marks[s.id]?.practicalMarks ?? ''} onChange={(e) => setMark(s.id, 'practicalMarks', e.target.value)} />
+                        <input type="number" className={markInputClass} value={marks[s.id]?.practicalMarks ?? ''} onChange={(e) => setMark(s.id, 'practicalMarks', e.target.value)} />
                       </td>
                       <td className="px-3 py-2.5">
-                        <input type="number" className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" value={marks[s.id]?.internalMarks ?? ''} onChange={(e) => setMark(s.id, 'internalMarks', e.target.value)} />
+                        <input type="number" className={markInputClass} value={marks[s.id]?.internalMarks ?? ''} onChange={(e) => setMark(s.id, 'internalMarks', e.target.value)} />
                       </td>
-                      <td className="px-3 py-2.5 font-medium text-gray-800">{prev ? `${prev.totalMarks}/${prev.maxMarks}` : liveTotal || '—'}</td>
+                      <td className="px-3 py-2.5 font-semibold text-gray-800">{prev ? `${prev.totalMarks}/${prev.maxMarks}` : liveTotal || '—'}</td>
                       <td className="px-3 py-2.5">
                         {prev?.grade
                           ? <Badge variant={gradeVariant(prev.grade, prev.isPassed)}>{prev.grade}</Badge>
-                          : <span className="text-xs text-gray-400">—</span>}
+                          : <span className="text-xs text-gray-300">—</span>}
                       </td>
                     </tr>
                   );
@@ -184,16 +191,18 @@ export default function ResultsPage() {
               </tbody>
             </table>
           </div>
-          <Button disabled={submitting} onClick={saveAll}>{submitting ? 'Saving...' : 'Save All Marks'}</Button>
+          <div className="sticky bottom-4 flex justify-end">
+            <Button disabled={submitting} onClick={saveAll} className="shadow-lg">{submitting ? 'Saving...' : 'Save All Marks'}</Button>
+          </div>
         </div>
       )}
 
       {examId && subjectId && students.length === 0 && (
-        <div className="mt-4"><EmptyState title="No students found" message="This exam section has no enrolled students." /></div>
+        <div className="mt-5"><EmptyState title="No students found" message="This exam section has no enrolled students." /></div>
       )}
 
       {(!examId || !subjectId) && (
-        <div className="mt-4"><EmptyState title="Select exam and subject" message="Choose an exam and subject to enter marks." /></div>
+        <div className="mt-5"><EmptyState title="Select exam and subject" message="Choose an exam and subject to enter marks." /></div>
       )}
     </>
   );

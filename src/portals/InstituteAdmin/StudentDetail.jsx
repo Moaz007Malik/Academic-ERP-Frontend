@@ -103,7 +103,7 @@ export default function StudentDetail() {
             {s.promotions?.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm">
                 {s.promotions.map((p) => (
-                  <li key={p.id} className="rounded-lg bg-gray-50 px-3 py-2">
+                  <li key={p.id} className="rounded-lg bg-gray-50 px-3 py-2 text-gray-700">
                     Promoted {p.sessionName ? `(${p.sessionName})` : ''} — {new Date(p.promotedAt).toLocaleDateString()}
                   </li>
                 ))}
@@ -120,33 +120,33 @@ export default function StudentDetail() {
             <StatCard label="Paid" value={profile.feeSummary.paid?.toLocaleString()} suffix=" PKR" variant="success" />
             <StatCard label="Remaining" value={profile.feeSummary.remaining?.toLocaleString()} suffix=" PKR" variant="warning" />
           </StatGrid>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-gray-100">
             <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-xs uppercase text-gray-500">
-                  <th className="py-2">Structure</th>
-                  <th>Original</th>
-                  <th>Discount</th>
-                  <th>Payable</th>
-                  <th>Due</th>
-                  <th>Status</th>
-                  <th>Receipt</th>
+              <thead className="bg-gray-50">
+                <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2.5">Structure</th>
+                  <th className="px-3 py-2.5">Original</th>
+                  <th className="px-3 py-2.5">Discount</th>
+                  <th className="px-3 py-2.5">Payable</th>
+                  <th className="px-3 py-2.5">Due</th>
+                  <th className="px-3 py-2.5">Status</th>
+                  <th className="px-3 py-2.5">Receipt</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {profile.fees?.map((f) => {
                   const original = Number(f.amount || 0);
                   const discount = Number(f.discount || 0);
                   const payable = Math.max(0, original + Number(f.fine || 0) - discount);
                   return (
-                    <tr key={f.id} className="border-b border-gray-100">
-                      <td className="py-2">{f.feeStructure?.name || '—'}</td>
-                      <td>{original.toLocaleString()} PKR</td>
-                      <td>{discount > 0 ? `${discount.toLocaleString()} PKR` : '—'}</td>
-                      <td className="font-medium">{payable.toLocaleString()} PKR</td>
-                      <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
-                      <td><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
-                      <td className="font-mono text-xs">{f.receiptNumber || '—'}</td>
+                    <tr key={f.id} className="transition hover:bg-gray-50/70">
+                      <td className="px-3 py-2.5">{f.feeStructure?.name || '—'}</td>
+                      <td className="px-3 py-2.5">{original.toLocaleString()} PKR</td>
+                      <td className="px-3 py-2.5">{discount > 0 ? `${discount.toLocaleString()} PKR` : '—'}</td>
+                      <td className="px-3 py-2.5 font-medium">{payable.toLocaleString()} PKR</td>
+                      <td className="px-3 py-2.5">{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
+                      <td className="px-3 py-2.5"><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
+                      <td className="px-3 py-2.5 font-mono text-xs">{f.receiptNumber || '—'}</td>
                     </tr>
                   );
                 })}
@@ -165,13 +165,14 @@ export default function StudentDetail() {
             <StatCard label="Leave" value={profile.attendanceSummary.LEAVE} />
             <StatCard label="Percentage" value={`${profile.attendanceSummary.percentage}%`} variant="info" />
           </StatGrid>
-          <div className="mt-4 max-h-80 overflow-y-auto">
+          <div className="mt-4 max-h-80 space-y-0.5 overflow-y-auto rounded-lg border border-gray-100 p-1">
             {profile.attendanceHistory?.slice(0, 50).map((a) => (
-              <div key={a.id} className="flex justify-between border-b border-gray-100 py-2 text-sm">
-                <span>{new Date(a.date).toLocaleDateString()} · {a.subject?.name || '—'}</span>
+              <div key={a.id} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition hover:bg-gray-50">
+                <span className="text-gray-700">{new Date(a.date).toLocaleDateString()} · {a.subject?.name || '—'}</span>
                 <Badge variant={a.status === 'PRESENT' ? 'success' : a.status === 'ABSENT' ? 'danger' : 'default'}>{a.status}</Badge>
               </div>
             ))}
+            {!profile.attendanceHistory?.length && <EmptyState title="No attendance records" />}
           </div>
         </SectionCard>
       )}
@@ -180,11 +181,11 @@ export default function StudentDetail() {
         <div className="space-y-4">
           {profile.examSummary?.length ? profile.examSummary.map((ex) => (
             <SectionCard key={ex.examId} title={ex.examName || 'Exam'}>
-              <p className="mb-2 text-sm text-gray-600">Total: {ex.obtainedMarks} / {ex.totalMarks}</p>
+              <p className="mb-3 text-sm font-medium text-gray-700">Total: {ex.obtainedMarks} / {ex.totalMarks}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {ex.subjects.map((sub, i) => (
                   <div key={i} className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-                    {sub.subject}: {sub.marks} {sub.grade && `(${sub.grade})`}
+                    {sub.subject}: <span className="font-medium">{sub.marks}</span> {sub.grade && <Badge className="ml-1" variant="info">{sub.grade}</Badge>}
                   </div>
                 ))}
               </div>
@@ -202,11 +203,12 @@ export default function StudentDetail() {
       {tab === 'timeline' && (
         <SectionCard title="Activity Timeline">
           {profile.timeline?.length ? (
-            <ul className="space-y-3">
+            <ul className="space-y-3 border-l-2 border-gray-100 pl-4">
               {profile.timeline.map((ev, i) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className="shrink-0 text-gray-400">{new Date(ev.date).toLocaleDateString()}</span>
-                  <span>{ev.text}</span>
+                <li key={i} className="relative text-sm">
+                  <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary-400" />
+                  <span className="mr-2 text-gray-400">{new Date(ev.date).toLocaleDateString()}</span>
+                  <span className="text-gray-700">{ev.text}</span>
                 </li>
               ))}
             </ul>

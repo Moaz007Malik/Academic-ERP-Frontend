@@ -90,7 +90,7 @@ export default function IndividualCourseDetail() {
         breadcrumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Individual Courses', to: '/admin/individual-courses' }, { label: 'New Course' }]}
         title="Create Individual Course"
       >
-        <form onSubmit={saveCourse} className="grid max-w-2xl gap-3 sm:grid-cols-2">
+        <form onSubmit={saveCourse} className="grid max-w-2xl gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:grid-cols-2">
           <Input label="Course Name *" value={form.name || ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <Input label="Course Code *" value={form.code || ''} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
           <Input label="Duration" value={form.duration || ''} onChange={(e) => setForm({ ...form, duration: e.target.value })} />
@@ -111,17 +111,17 @@ export default function IndividualCourseDetail() {
           <Input label="Scholarship" type="number" value={form.scholarshipAmount ?? 0} onChange={(e) => setForm({ ...form, scholarshipAmount: e.target.value === '' ? 0 : Number(e.target.value) })} />
           <div className="col-span-2">
             <label className="mb-1 block text-sm font-medium text-gray-700">Assign Teachers</label>
-            <select multiple className="w-full rounded border px-3 py-2 text-sm" value={form.teacherIds || []} onChange={(e) => setForm({ ...form, teacherIds: [...e.target.selectedOptions].map((o) => o.value) })}>
+            <select multiple className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" value={form.teacherIds || []} onChange={(e) => setForm({ ...form, teacherIds: [...e.target.selectedOptions].map((o) => o.value) })}>
               {teachers.map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>)}
             </select>
           </div>
           <div className="col-span-2"><Input label="Description" value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-          <p className="col-span-2 text-xs text-gray-500">
+          <p className="col-span-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
             {paymentType === 'MONTHLY'
               ? 'Enrolled students will receive admission fee (if any) plus monthly fee records based on course duration.'
               : 'Enrolled students will receive admission fee (if any) plus a single one-time fee — no monthly dues.'}
           </p>
-          <div className="col-span-2"><Button type="submit">Create Course</Button></div>
+          <div className="col-span-2"><Button type="submit" className="w-full sm:w-auto">Create Course</Button></div>
         </form>
       </DetailPageLayout>
     );
@@ -162,13 +162,13 @@ export default function IndividualCourseDetail() {
             { label: 'End', value: course.endDate ? new Date(course.endDate).toLocaleDateString() : null },
             { label: 'Teachers', value: course.teachers?.map((t) => `${t.teacher.firstName} ${t.teacher.lastName}`).join(', ') },
           ]} />
-          <p className="mt-4 text-sm text-gray-600">{course.description}</p>
+          {course.description && <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">{course.description}</p>}
         </SectionCard>
       )}
 
       {tab === 'teachers' && (
         <SectionCard title="Assigned Teachers">
-          <div className="mb-3 flex gap-2">
+          <div className="mb-4 flex gap-2">
             <Select value={teacherPick} onChange={(e) => setTeacherPick(e.target.value)}>
               <option value="">Select teacher</option>
               {teachers.map((t) => <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>)}
@@ -181,11 +181,12 @@ export default function IndividualCourseDetail() {
               setCourse(res.data.data);
             }}>Assign</Button>
           </div>
-          <ul className="divide-y text-sm">
+          {!course.teachers?.length && <EmptyState title="No teachers assigned" />}
+          <ul className="divide-y divide-gray-100 text-sm">
             {course.teachers?.map((t) => (
-              <li key={t.id} className="flex justify-between py-2">
-                <span>{t.teacher.firstName} {t.teacher.lastName}</span>
-                <button type="button" className="text-xs text-red-600" onClick={async () => {
+              <li key={t.id} className="flex items-center justify-between py-3">
+                <span className="font-medium text-gray-800">{t.teacher.firstName} {t.teacher.lastName}</span>
+                <button type="button" className="text-xs font-medium text-red-600 hover:underline" onClick={async () => {
                   await api.delete(`/admin/individual-courses/${id}/teachers/${t.teacher.id}`);
                   const res = await api.get(`/admin/individual-courses/${id}`);
                   setCourse(res.data.data);
@@ -198,7 +199,7 @@ export default function IndividualCourseDetail() {
 
       {tab === 'attendance' && (
         <SectionCard title="Course Attendance">
-          <div className="mb-3 flex gap-2">
+          <div className="mb-4 flex flex-wrap gap-2">
             <Input label="Date" type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} />
             <Button className="self-end" onClick={async () => {
               const res = await api.get(`/admin/individual-courses/${id}/attendance`, { params: { date: attendanceDate } });
@@ -212,18 +213,20 @@ export default function IndividualCourseDetail() {
           </div>
           {attendanceRows.length > 0 && (
             <>
-              <table className="mb-3 min-w-full text-sm"><tbody>
-                {attendanceRows.map((r) => (
-                  <tr key={r.studentId} className="border-b">
-                    <td className="py-2">{r.name}</td>
-                    <td>
-                      <Select value={r.status} onChange={(e) => setAttendanceRows((rows) => rows.map((x) => x.studentId === r.studentId ? { ...x, status: e.target.value } : x))}>
-                        <option value="PRESENT">Present</option><option value="ABSENT">Absent</option><option value="LATE">Late</option><option value="LEAVE">Leave</option>
-                      </Select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody></table>
+              <div className="mb-4 overflow-hidden rounded-lg border border-gray-100">
+                <table className="min-w-full text-sm"><tbody className="divide-y divide-gray-100">
+                  {attendanceRows.map((r) => (
+                    <tr key={r.studentId} className="transition hover:bg-gray-50/70">
+                      <td className="px-3 py-2.5">{r.name}</td>
+                      <td className="px-3 py-2.5">
+                        <Select value={r.status} onChange={(e) => setAttendanceRows((rows) => rows.map((x) => x.studentId === r.studentId ? { ...x, status: e.target.value } : x))}>
+                          <option value="PRESENT">Present</option><option value="ABSENT">Absent</option><option value="LATE">Late</option><option value="LEAVE">Leave</option>
+                        </Select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody></table>
+              </div>
               <Button onClick={async () => {
                 await api.post(`/admin/individual-courses/${id}/attendance/mark`, { date: attendanceDate, records: attendanceRows.map((r) => ({ studentId: r.studentId, status: r.status })) });
                 alert('Attendance saved');
@@ -236,20 +239,26 @@ export default function IndividualCourseDetail() {
       {tab === 'enrollments' && (
         <SectionCard title="Enrolled Students">
           {course.enrollments?.length ? (
-            <table className="min-w-full text-sm">
-              <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="py-2">Student</th><th>Roll</th><th>Status</th><th>Fee Due</th><th></th></tr></thead>
-              <tbody>
-                {course.enrollments.map((e) => (
-                  <tr key={e.id} className="border-b border-gray-100">
-                    <td className="py-2">{e.student.firstName} {e.student.lastName}</td>
-                    <td>{e.student.rollNumber}</td>
-                    <td><Badge>{e.status}</Badge></td>
-                    <td>{Number(e.feeDue).toLocaleString()} PKR</td>
-                    <td><Link to={`/admin/students/${e.student.id}`} className="text-xs text-primary-600">Profile</Link></td>
+            <div className="overflow-x-auto rounded-lg border border-gray-100">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2.5">Student</th><th className="px-3 py-2.5">Roll</th><th className="px-3 py-2.5">Status</th><th className="px-3 py-2.5">Fee Due</th><th className="px-3 py-2.5"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {course.enrollments.map((e) => (
+                    <tr key={e.id} className="transition hover:bg-gray-50/70">
+                      <td className="px-3 py-2.5 font-medium">{e.student.firstName} {e.student.lastName}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs">{e.student.rollNumber}</td>
+                      <td className="px-3 py-2.5"><Badge>{e.status}</Badge></td>
+                      <td className="px-3 py-2.5">{Number(e.feeDue).toLocaleString()} PKR</td>
+                      <td className="px-3 py-2.5"><Link to={`/admin/students/${e.student.id}`} className="text-xs font-medium text-primary-600 hover:underline">Profile</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : <EmptyState title="No enrollments" action={<Button onClick={() => setEnrollOpen(true)}>Enroll first student</Button>} />}
         </SectionCard>
       )}
@@ -265,7 +274,7 @@ export default function IndividualCourseDetail() {
 
       <Modal open={enrollOpen} onClose={() => setEnrollOpen(false)} title="Enroll Student" wide>
         <form onSubmit={enroll} className="space-y-4">
-          {enrollError && <p className="text-sm text-red-600">{enrollError}</p>}
+          {enrollError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{enrollError}</p>}
           <Select value={enrollForm.mode} onChange={(e) => setEnrollForm({ ...enrollForm, mode: e.target.value })}>
             <option value="existing">Existing student</option>
             <option value="new">Create new student</option>
@@ -276,9 +285,11 @@ export default function IndividualCourseDetail() {
               {students.map((s) => <option key={s.id} value={s.id}>{s.firstName} {s.lastName} ({s.rollNumber})</option>)}
             </Select>
           ) : (
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+            <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
               <div>
-                <p className="mb-2 text-sm font-semibold text-gray-800">Personal Information</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" /> Personal Information
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input label="First Name *" value={enrollForm.newStudent.firstName} onChange={(e) => setNewStudent('firstName', e.target.value)} required />
                   <Input label="Last Name *" value={enrollForm.newStudent.lastName} onChange={(e) => setNewStudent('lastName', e.target.value)} required />
@@ -294,14 +305,18 @@ export default function IndividualCourseDetail() {
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold text-gray-800">Student / Admission Details</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" /> Student / Admission Details
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input label="Admission Number" value={enrollForm.newStudent.admissionNumber} onChange={(e) => setNewStudent('admissionNumber', e.target.value)} />
                   <Input label="Registration Number" value={enrollForm.newStudent.registrationNumber} onChange={(e) => setNewStudent('registrationNumber', e.target.value)} />
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold text-gray-800">Guardian / Father Information</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" /> Guardian / Father Information
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input label="Father Name" value={enrollForm.newStudent.fatherName} onChange={(e) => setNewStudent('fatherName', e.target.value)} />
                   <Input label="Mother Name" value={enrollForm.newStudent.motherName} onChange={(e) => setNewStudent('motherName', e.target.value)} />
@@ -312,26 +327,30 @@ export default function IndividualCourseDetail() {
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold text-gray-800">Contact & Address</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" /> Contact & Address
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input label="Phone" value={enrollForm.newStudent.phone} onChange={(e) => setNewStudent('phone', e.target.value)} />
                   <Input label="Address" value={enrollForm.newStudent.address} onChange={(e) => setNewStudent('address', e.target.value)} className="sm:col-span-2" />
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold text-gray-800">Portal Access</p>
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary-500" /> Portal Access
+                </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input label="Portal Email" type="email" value={enrollForm.newStudent.email} onChange={(e) => setNewStudent('email', e.target.value)} />
                   <Input label="Portal Password" type="text" value={enrollForm.newStudent.password} onChange={(e) => setNewStudent('password', e.target.value)} placeholder="Default if blank" />
                 </div>
               </div>
               <Input label="Notes" value={enrollForm.newStudent.notes} onChange={(e) => setNewStudent('notes', e.target.value)} />
-              <p className="text-xs text-gray-500">
+              <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
                 Fees will be assigned automatically based on this course&apos;s {isMonthly ? 'monthly' : 'one-time'} payment type.
               </p>
             </div>
           )}
-          <Button type="submit">Enroll</Button>
+          <Button type="submit" className="w-full sm:w-auto">Enroll</Button>
         </form>
       </Modal>
     </DetailPageLayout>
