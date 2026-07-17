@@ -65,68 +65,86 @@ export default function FeesPage() {
     }
   };
 
+  const [hubLoading, setHubLoading] = useState(false);
+  const [hubError, setHubError] = useState('');
+
   const drill = async (key, value, label, meta = {}) => {
     const next = { ...selection, [key]: { value, label, ...meta } };
     setSelection(next);
     setFeeDetail(null);
-
-    if (module === 'ACADEMIC') {
-      if (key === 'session') {
-        setStep(2);
-        const res = await api.get('/admin/finance/academic/batches', { params: { sessionId: value } });
-        setItems(res.data.data || []);
-      } else if (key === 'batch') {
-        setStep(3);
-        const res = await api.get('/admin/finance/academic/sections', { params: { batchId: value } });
-        setItems(res.data.data || []);
-      } else if (key === 'section') {
-        setStep(4);
-        const res = await api.get('/admin/finance/academic/students', { params: { sectionId: value } });
-        setItems(res.data.data || []);
-      } else if (key === 'student') {
-        setStep(5);
-        const res = await api.get(`/admin/finance/academic/students/${value}/fees`);
-        setFeeDetail(res.data.data);
+    setHubError('');
+    setHubLoading(true);
+    try {
+      if (module === 'ACADEMIC') {
+        if (key === 'session') {
+          setStep(2);
+          const res = await api.get('/admin/finance/academic/batches', { params: { sessionId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'batch') {
+          setStep(3);
+          const res = await api.get('/admin/finance/academic/sections', { params: { batchId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'section') {
+          setStep(4);
+          const res = await api.get('/admin/finance/academic/students', { params: { sectionId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'student') {
+          setStep(5);
+          const res = await api.get(`/admin/finance/academic/students/${value}/fees`);
+          setFeeDetail(res.data.data);
+        }
+      } else if (module === 'DEGREE') {
+        if (key === 'degree') {
+          setStep(2);
+          const res = await api.get('/admin/finance/degree/batches', { params: { degreeId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'batch') {
+          setStep(3);
+          const res = await api.get('/admin/finance/degree/semesters', { params: { batchId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'semester') {
+          setStep(4);
+          const res = await api.get('/admin/finance/degree/students', {
+            params: { batchId: next.batch.value, semesterNumber: next.semester.number },
+          });
+          setItems(res.data.data || []);
+        } else if (key === 'student') {
+          setStep(5);
+          const res = await api.get(`/admin/finance/degree/students/${value}/fees`);
+          setFeeDetail(res.data.data);
+        }
+      } else if (module === 'INDIVIDUAL_COURSE') {
+        if (key === 'course') {
+          setStep(2);
+          const res = await api.get('/admin/finance/individual-courses/students', { params: { courseId: value } });
+          setItems(res.data.data || []);
+        } else if (key === 'enrollment') {
+          setStep(3);
+          const res = await api.get(`/admin/finance/individual-courses/enrollments/${value}/fees`);
+          setFeeDetail(res.data.data);
+        }
       }
-    } else if (module === 'DEGREE') {
-      if (key === 'degree') {
-        setStep(2);
-        const res = await api.get('/admin/finance/degree/batches', { params: { degreeId: value } });
-        setItems(res.data.data || []);
-      } else if (key === 'batch') {
-        setStep(3);
-        const res = await api.get('/admin/finance/degree/semesters', { params: { batchId: value } });
-        setItems(res.data.data || []);
-      } else if (key === 'semester') {
-        setStep(4);
-        const res = await api.get('/admin/finance/degree/students', {
-          params: { batchId: next.batch.value, semesterNumber: next.semester.number },
-        });
-        setItems(res.data.data || []);
-      } else if (key === 'student') {
-        setStep(5);
-        const res = await api.get(`/admin/finance/degree/students/${value}/fees`);
-        setFeeDetail(res.data.data);
-      }
-    } else if (key === 'course') {
-      setStep(2);
-      const res = await api.get('/admin/finance/individual-courses/students', { params: { courseId: value } });
-      setItems(res.data.data || []);
-    } else if (key === 'enrollment') {
-      setStep(3);
-      const res = await api.get(`/admin/finance/individual-courses/enrollments/${value}/fees`);
-      setFeeDetail(res.data.data);
+    } catch (err) {
+      setHubError(err.response?.data?.message || 'Failed to load fee data');
+      setItems([]);
+    } finally {
+      setHubLoading(false);
     }
   };
 
   const breadcrumbs = [
-    module && { label: MODULE_LABELS[module], action: () => { setStep(1); setFeeDetail(null); } },
+    module && { label: MODULE_LABELS[module], action: () => selectModule(module) },
     selection.session && { label: selection.session.label },
     selection.degree && { label: selection.degree.label },
     selection.batch && { label: selection.batch.label },
     selection.section && { label: `Section ${selection.section.label}` },
     selection.semester && { label: selection.semester.label },
-    selection.course && { label: selection.course.label },
+    selection.course && {
+      label: selection.course.label,
+      action: module === 'INDIVIDUAL_COURSE' && feeDetail
+        ? () => drill('course', selection.course.value, selection.course.label)
+        : undefined,
+    },
     selection.student && { label: selection.student.label },
     selection.enrollment && { label: selection.enrollment.label },
   ].filter(Boolean);
@@ -190,7 +208,7 @@ export default function FeesPage() {
 
     if (module === 'INDIVIDUAL_COURSE') {
       if (step === 1) return items.map((c) => (
-        <ListRow key={c.id} title={c.name} subtitle={`${c._count?.enrollments ?? 0} students`} onClick={() => drill('course', c.id, c.name)} />
+        <ListRow key={c.id} title={c.name} subtitle={`${c._count?.enrollments ?? 0} students · ${c.paymentType === 'MONTHLY' ? 'Monthly' : 'One-Time'}`} onClick={() => drill('course', c.id, c.name)} />
       ));
       if (step === 2) return items.map((e) => (
         <ListRow key={e.id} title={`${e.student.firstName} ${e.student.lastName}`} subtitle={`Due: ${e.dueAmount?.toLocaleString()} PKR`} onClick={() => drill('enrollment', e.id, `${e.student.firstName} ${e.student.lastName}`)} />
@@ -277,12 +295,15 @@ export default function FeesPage() {
                 ))}
               </div>
 
-              {step < 5 ? (
-                <SectionCard title={step === 1 ? `Select ${MODULE_LABELS[module]} Program` : 'Select next level'}>
+              {hubError && <p className="text-sm text-red-600">{hubError}</p>}
+              {hubLoading && !feeDetail ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : feeDetail ? (
+                <FeeDetailPanel module={module} data={feeDetail} onCollect={collect} submitting={submitting} />
+              ) : (
+                <SectionCard title={step === 1 ? `Select ${MODULE_LABELS[module]}` : 'Select next level'}>
                   <div className="space-y-2">{renderList()}</div>
                 </SectionCard>
-              ) : (
-                <FeeDetailPanel module={module} data={feeDetail} onCollect={collect} submitting={submitting} />
               )}
             </>
           )}
@@ -347,9 +368,22 @@ function FeeDetailPanel({ module, data, onCollect, submitting }) {
         )}
 
         {module === 'INDIVIDUAL_COURSE' && data.enrollment && (
-          <div className="mt-4 text-sm">
-            <p>Assigned Course Fee: <strong>{Number(data.assignedCourseFee).toLocaleString()} PKR</strong></p>
-            <p>Course: {data.enrollment.course?.name}</p>
+          <div className="mt-4 space-y-1 text-sm">
+            <p>Course: <strong>{data.enrollment.course?.name}</strong>
+              {data.enrollment.course?.paymentType && (
+                <Badge className="ml-2">{data.enrollment.course.paymentType === 'MONTHLY' ? 'Monthly' : 'One-Time'}</Badge>
+              )}
+            </p>
+            <p>Assigned Course Fee (payable): <strong>{Number(data.assignedCourseFee).toLocaleString()} PKR</strong></p>
+          </div>
+        )}
+
+        {module === 'ACADEMIC' && data.student && (
+          <div className="mt-4 grid gap-1 text-sm sm:grid-cols-2">
+            <p>Original Registration: <strong>{Number(data.student.assignedRegistrationFee || 0).toLocaleString()} PKR</strong></p>
+            <p>Reg. Discount: {Number(data.student.registrationDiscount || 0).toLocaleString()} PKR</p>
+            <p>Original Monthly: <strong>{Number(data.student.assignedMonthlyFee || 0).toLocaleString()} PKR</strong></p>
+            <p>Monthly Discount: {Number(data.student.monthlyDiscount || 0).toLocaleString()} PKR</p>
           </div>
         )}
       </SectionCard>
@@ -363,17 +397,20 @@ function FeeDetailPanel({ module, data, onCollect, submitting }) {
                 Paid: {plan.paidInstallments} · Remaining: {plan.remainingInstallments} · Balance: {plan.remainingBalance?.toLocaleString()} PKR
               </p>
               <table className="mt-2 min-w-full text-sm">
-                <thead><tr className="text-left text-xs text-gray-500"><th>#</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
+                <thead><tr className="text-left text-xs text-gray-500"><th>#</th><th>Payable</th><th>Due</th><th>Status</th><th></th></tr></thead>
                 <tbody>
-                  {plan.installments.map((inst) => (
-                    <tr key={inst.id} className="border-t">
-                      <td className="py-1">{inst.installmentNo}</td>
-                      <td>{Number(inst.amount).toLocaleString()}</td>
-                      <td>{inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '—'}</td>
-                      <td><Badge variant={inst.status === 'PAID' ? 'success' : 'warning'}>{inst.status}</Badge></td>
-                      <td>{inst.status === 'PENDING' && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(inst.id)}>Collect</Button>}</td>
-                    </tr>
-                  ))}
+                  {plan.installments.map((inst) => {
+                    const payable = Math.max(0, Number(inst.amount || 0) + Number(inst.fine || 0) - Number(inst.discount || 0));
+                    return (
+                      <tr key={inst.id} className="border-t">
+                        <td className="py-1">{inst.installmentNo}</td>
+                        <td>{payable.toLocaleString()} PKR</td>
+                        <td>{inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '—'}</td>
+                        <td><Badge variant={inst.status === 'PAID' ? 'success' : 'warning'}>{inst.status}</Badge></td>
+                        <td>{inst.status === 'PENDING' && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(inst.id)}>Collect</Button>}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -382,21 +419,40 @@ function FeeDetailPanel({ module, data, onCollect, submitting }) {
       )}
 
       <SectionCard title="Fee Records & Payment History">
-        <table className="min-w-full text-sm">
-          <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="py-2">Fee</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead>
-          <tbody>
-            {fees.map((f) => (
-              <tr key={f.id} className="border-b border-gray-100">
-                <td className="py-2">{f.feeStructure?.name}{f.installmentNo ? ` (#${f.installmentNo})` : ''}</td>
-                <td>{Number(f.amount).toLocaleString()} PKR</td>
-                <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
-                <td><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
-                <td>{f.status === 'PENDING' && !f.parentFeeId && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(f.id)}>Collect</Button>}</td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase text-gray-500">
+                <th className="py-2">Fee</th>
+                <th>Original</th>
+                <th>Discount</th>
+                <th>Payable</th>
+                <th>Due</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {!fees.length && <EmptyState title="No fee records" />}
+            </thead>
+            <tbody>
+              {fees.map((f) => {
+                const original = Number(f.amount || 0);
+                const discount = Number(f.discount || 0);
+                const payable = Math.max(0, original + Number(f.fine || 0) - discount);
+                return (
+                  <tr key={f.id} className="border-b border-gray-100">
+                    <td className="py-2">{f.feeStructure?.name}{f.installmentNo ? ` (#${f.installmentNo})` : ''}</td>
+                    <td>{original.toLocaleString()} PKR</td>
+                    <td>{discount > 0 ? `${discount.toLocaleString()} PKR` : '—'}</td>
+                    <td className="font-medium">{payable.toLocaleString()} PKR</td>
+                    <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
+                    <td><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
+                    <td>{f.status === 'PENDING' && !f.parentFeeId && <Button className="px-2 py-1 text-xs" disabled={submitting} onClick={() => onCollect(f.id)}>Collect</Button>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!fees.length && <EmptyState title="No fee records" message="No fees assigned for this student yet." />}
       </SectionCard>
     </div>
   );

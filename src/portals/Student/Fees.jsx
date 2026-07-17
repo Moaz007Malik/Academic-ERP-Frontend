@@ -94,7 +94,9 @@ export default function StudentFees() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left">Fee Type</th>
-              <th className="px-4 py-3 text-left">Amount</th>
+              <th className="px-4 py-3 text-left">Original</th>
+              <th className="px-4 py-3 text-left">Discount</th>
+              <th className="px-4 py-3 text-left">Payable</th>
               <th className="px-4 py-3 text-left">Due Date</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Source</th>
@@ -102,18 +104,25 @@ export default function StudentFees() {
           </thead>
           <tbody className="divide-y">
             {list?.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No records</td></tr>
-            ) : list?.map((f) => (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No records</td></tr>
+            ) : list?.map((f) => {
+              const original = Number(f.amount || 0);
+              const discount = Number(f.discount || 0);
+              const payable = Math.max(0, original + Number(f.fine || 0) - discount);
+              return (
               <tr key={f.id}>
                 <td className="px-4 py-3">{f.feeStructure?.name}{f.installmentNo ? ` (#${f.installmentNo})` : ''}</td>
-                <td className="px-4 py-3">Rs. {Number(f.amount).toLocaleString()}</td>
+                <td className="px-4 py-3">Rs. {original.toLocaleString()}</td>
+                <td className="px-4 py-3">{discount > 0 ? `Rs. ${discount.toLocaleString()}` : '—'}</td>
+                <td className="px-4 py-3 font-medium">Rs. {payable.toLocaleString()}</td>
                 <td className="px-4 py-3">{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
                 <td className="px-4 py-3"><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
                 <td className="px-4 py-3 text-xs text-gray-500">
                   {f.degreeStudent ? `Degree — ${f.degreeStudent.batch?.degree?.name || ''}` : f.individualCourseEnrollment ? `Course — ${f.individualCourseEnrollment.course?.name}` : 'Academic'}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}

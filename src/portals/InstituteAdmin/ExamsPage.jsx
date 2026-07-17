@@ -7,6 +7,7 @@ import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
 import Modal from '../../components/common/Modal';
 import Badge from '../../components/common/Badge';
+import { SectionCard, EmptyState } from '../../components/layout/DetailPageLayout';
 import { RowActions, confirmDelete } from '../../components/common/RowActions';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
@@ -15,6 +16,13 @@ const EXAM_TYPES = ['MONTHLY', 'MID_TERM', 'FINAL', 'BOARD', 'SUPPLY'];
 function toDateInput(d) {
   if (!d) return '';
   return new Date(d).toISOString().slice(0, 10);
+}
+
+function formatRange(start, end) {
+  if (!start && !end) return 'Schedule not set';
+  const s = start ? new Date(start).toLocaleDateString() : '—';
+  const e = end ? new Date(end).toLocaleDateString() : '—';
+  return `${s} → ${e}`;
 }
 
 export default function ExamsPage() {
@@ -68,11 +76,8 @@ export default function ExamsPage() {
     setError('');
     const { skipped } = await run(async () => {
       try {
-        if (editId) {
-          await api.put(`/admin/exams/${editId}`, form);
-        } else {
-          await api.post('/admin/exams', form);
-        }
+        if (editId) await api.put(`/admin/exams/${editId}`, form);
+        else await api.post('/admin/exams', form);
         setOpen(false);
         load();
       } catch (err) {
@@ -101,59 +106,57 @@ export default function ExamsPage() {
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
-        <PageTitle title="Exams" subtitle="Pakistani marking: Theory 75 + Practical 15 + Internal 10" />
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <PageTitle title="Exams" subtitle="Schedule exams and publish results for student portals" />
         <Button onClick={openAdd}>+ Create Exam</Button>
       </div>
-      {error && !open && <p className="mb-2 text-sm text-red-600">{error}</p>}
+      {error && !open && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Exam</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Class</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Marks</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Results</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {loading ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
-            ) : exams.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No exams yet</td></tr>
-            ) : exams.map((ex) => (
-              <tr key={ex.id}>
-                <td className="px-4 py-3 font-medium">{ex.name}</td>
-                <td className="px-4 py-3">{ex.examType}</td>
-                <td className="px-4 py-3">{ex.section ? `${ex.section.batch?.name} — ${ex.section.name}` : '—'}</td>
-                <td className="px-4 py-3">{ex.theoryMax}+{ex.practicalMax}+{ex.internalMax}</td>
-                <td className="px-4 py-3">{ex._count?.results || 0}</td>
-                <td className="px-4 py-3">
-                  <Badge variant={ex.isPublished ? 'success' : 'warning'}>{ex.isPublished ? 'Published' : 'Draft'}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1">
-                    {!ex.isPublished && (
-                      <>
-                        <Link to={`/admin/exams/${ex.id}`}><Button variant="ghost" className="px-2 py-1 text-xs">View</Button></Link>
-                        <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => publish(ex.id)}>Publish</Button>
-                        <RowActions onEdit={() => openEdit(ex)} onDelete={() => handleDelete(ex)} />
-                      </>
-                    )}
-                    {ex.isPublished && (
-                      <Link to={`/admin/exams/${ex.id}`}><Button variant="ghost" className="px-2 py-1 text-xs">View</Button></Link>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <p className="text-sm text-gray-500">Loading exams...</p>
+      ) : exams.length === 0 ? (
+        <EmptyState title="No exams yet" message="Create your first exam to start entering results." action={<Button onClick={openAdd}>Create Exam</Button>} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {exams.map((ex) => (
+            <SectionCard
+              key={ex.id}
+              title={ex.name}
+              action={<Badge variant={ex.isPublished ? 'success' : 'warning'}>{ex.isPublished ? 'Published' : 'Draft'}</Badge>}
+            >
+              <div className="space-y-3 text-sm">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="info">{String(ex.examType).replace('_', ' ')}</Badge>
+                  <span className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                    Theory {ex.theoryMax} · Practical {ex.practicalMax} · Internal {ex.internalMax}
+                  </span>
+                </div>
+                <p className="text-gray-600">
+                  <span className="font-medium text-gray-800">Class: </span>
+                  {ex.section ? `${ex.section.batch?.name} — ${ex.section.name}` : '—'}
+                </p>
+                <p className="text-gray-600">
+                  <span className="font-medium text-gray-800">Schedule: </span>
+                  {formatRange(ex.startDate, ex.endDate)}
+                </p>
+                <p className="text-gray-600">
+                  <span className="font-medium text-gray-800">Results entered: </span>
+                  {ex._count?.results || 0} · Pass mark {ex.passPercentage}%
+                </p>
+                <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+                  <Link to={`/admin/exams/${ex.id}`}><Button variant="ghost" className="px-2 py-1 text-xs">View</Button></Link>
+                  {!ex.isPublished && (
+                    <>
+                      <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => publish(ex.id)}>Publish</Button>
+                      <RowActions onEdit={() => openEdit(ex)} onDelete={() => handleDelete(ex)} />
+                    </>
+                  )}
+                </div>
+              </div>
+            </SectionCard>
+          ))}
+        </div>
+      )}
 
       <Modal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit Exam' : 'Create Exam'} wide>
         <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">

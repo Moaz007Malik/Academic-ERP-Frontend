@@ -28,6 +28,7 @@ export default function IndividualCoursesList() {
   const columns = [
     { key: 'code', label: 'Code', render: (c) => <span className="font-mono">{c.code}</span> },
     { key: 'name', label: 'Course' },
+    { key: 'payment', label: 'Payment', render: (c) => <Badge variant={c.paymentType === 'MONTHLY' ? 'info' : 'default'}>{c.paymentType === 'MONTHLY' ? 'Monthly' : 'One-Time'}</Badge> },
     { key: 'duration', label: 'Duration' },
     { key: 'enrolled', label: 'Enrolled', render: (c) => c._count?.enrollments ?? 0 },
     { key: 'status', label: 'Status', render: (c) => <Badge>{c.status}</Badge> },

@@ -1,12 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api from '../../services/api';
 import PageTitle from '../../components/layout/PageTitle';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import Select from '../../components/common/Select';
+import { SectionCard, StatGrid, StatCard, EmptyState } from '../../components/layout/DetailPageLayout';
 import { useAsyncSubmit } from '../../hooks/useAsyncSubmit';
 
 const STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'LEAVE'];
+
+const STATUS_STYLE = {
+  PRESENT: 'success',
+  ABSENT: 'danger',
+  LATE: 'warning',
+  LEAVE: 'info',
+};
+
+const STATUS_BTN = {
+  PRESENT: 'border-green-300 bg-green-50 text-green-800',
+  ABSENT: 'border-red-300 bg-red-50 text-red-800',
+  LATE: 'border-amber-300 bg-amber-50 text-amber-800',
+  LEAVE: 'border-blue-300 bg-blue-50 text-blue-800',
+};
 
 export default function AttendancePage() {
   const [structure, setStructure] = useState({});
@@ -71,7 +86,16 @@ export default function AttendancePage() {
     if (skipped) setMsg('Please wait, saving...');
   };
 
-  const summary = savedRecords.reduce(
+  const markSummary = useMemo(() => {
+    const acc = { total: students.length, PRESENT: 0, ABSENT: 0, LATE: 0, LEAVE: 0 };
+    students.forEach((s) => {
+      const st = records[s.id] || 'PRESENT';
+      acc[st] = (acc[st] || 0) + 1;
+    });
+    return acc;
+  }, [students, records]);
+
+  const viewSummary = savedRecords.reduce(
     (acc, r) => {
       acc.total += 1;
       acc[r.status] = (acc[r.status] || 0) + 1;
@@ -80,100 +104,146 @@ export default function AttendancePage() {
     { total: 0, PRESENT: 0, ABSENT: 0, LATE: 0, LEAVE: 0 },
   );
 
+  const setAll = (status) => {
+    const next = {};
+    students.forEach((s) => { next[s.id] = status; });
+    setRecords(next);
+  };
+
   return (
     <>
-      <PageTitle title="Attendance" />
-      {msg && <p className="mb-4 text-sm text-green-600">{msg}</p>}
+      <PageTitle title="Attendance" subtitle="Mark and review daily class attendance" />
+      {msg && (
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">{msg}</div>
+      )}
 
-      <div className="mb-4 flex gap-2 border-b border-gray-200">
-        <button type="button" className={`px-4 py-2 text-sm font-medium ${tab === 'mark' ? 'border-b-2 border-primary-600 text-primary-700' : 'text-gray-500'}`} onClick={() => setTab('mark')}>Mark Attendance</button>
-        <button type="button" className={`px-4 py-2 text-sm font-medium ${tab === 'view' ? 'border-b-2 border-primary-600 text-primary-700' : 'text-gray-500'}`} onClick={() => setTab('view')}>View Saved</button>
+      <div className="mb-4 flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+        {['mark', 'view'].map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition ${tab === t ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => setTab(t)}
+          >
+            {t === 'mark' ? 'Mark Attendance' : 'View Saved'}
+          </button>
+        ))}
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Select label="Section" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
-          <option value="">Select section</option>
-          {structure.sections?.map((s) => (
-            <option key={s.id} value={s.id}>{s.batch?.name} — Section {s.name}</option>
-          ))}
-        </Select>
-        <Select label="Subject" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-          <option value="">Select subject</option>
-          {allSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </Select>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Date</label>
-          <input type="date" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
+      <SectionCard title="Filters">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Select label="Section" value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+            <option value="">Select section</option>
+            {structure.sections?.map((s) => (
+              <option key={s.id} value={s.id}>{s.batch?.name} — Section {s.name}</option>
+            ))}
+          </Select>
+          <Select label="Subject" value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+            <option value="">Select subject</option>
+            {allSubjects.map((s) => <option key={s.id} value={s.id}>{s.name}{s.className ? ` (${s.className})` : ''}</option>)}
+          </Select>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
+            <input type="date" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
         </div>
-      </div>
+      </SectionCard>
 
       {tab === 'mark' && sectionId && subjectId && students.length > 0 && (
-        <>
+        <div className="mt-4 space-y-4">
+          <StatGrid cols={4}>
+            <StatCard label="Present" value={markSummary.PRESENT} variant="success" />
+            <StatCard label="Absent" value={markSummary.ABSENT} variant="danger" />
+            <StatCard label="Late" value={markSummary.LATE} variant="warning" />
+            <StatCard label="Leave" value={markSummary.LEAVE} variant="info" />
+          </StatGrid>
+
+          <div className="flex flex-wrap gap-2">
+            {STATUSES.map((st) => (
+              <button key={st} type="button" onClick={() => setAll(st)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${STATUS_BTN[st]}`}>
+                Mark all {st.toLowerCase()}
+              </button>
+            ))}
+          </div>
+
           <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left">Roll</th>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Roll</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Student</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {students.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-4 py-2 font-mono">{s.rollNumber}</td>
-                    <td className="px-4 py-2">{s.firstName} {s.lastName}</td>
-                    <td className="px-4 py-2">
-                      <select className="rounded border px-2 py-1" value={records[s.id] || 'PRESENT'} onChange={(e) => setRecords({ ...records, [s.id]: e.target.value })}>
-                        {STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
-                      </select>
+                  <tr key={s.id} className="hover:bg-gray-50/80">
+                    <td className="px-4 py-3 font-mono text-xs text-gray-600">{s.rollNumber}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{s.firstName} {s.lastName}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {STATUSES.map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setRecords({ ...records, [s.id]: st })}
+                            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${(records[s.id] || 'PRESENT') === st ? STATUS_BTN[st] : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}
+                          >
+                            {st.charAt(0) + st.slice(1).toLowerCase()}
+                          </button>
+                        ))}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Button className="mt-4" disabled={submitting} onClick={save}>{submitting ? 'Saving...' : 'Save Attendance'}</Button>
-        </>
+          <Button disabled={submitting} onClick={save}>{submitting ? 'Saving...' : 'Save Attendance'}</Button>
+        </div>
       )}
 
       {tab === 'mark' && sectionId && subjectId && students.length === 0 && (
-        <p className="text-sm text-gray-500">No students in this section.</p>
+        <div className="mt-4"><EmptyState title="No students in this section" /></div>
       )}
 
       {tab === 'view' && sectionId && subjectId && (
-        <>
+        <div className="mt-4 space-y-4">
           {savedRecords.length > 0 && (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm">Present: <strong>{summary.PRESENT}</strong></div>
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm">Absent: <strong>{summary.ABSENT}</strong></div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">Late: <strong>{summary.LATE}</strong></div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">Leave: <strong>{summary.LEAVE}</strong></div>
-            </div>
+            <StatGrid cols={4}>
+              <StatCard label="Present" value={viewSummary.PRESENT} variant="success" />
+              <StatCard label="Absent" value={viewSummary.ABSENT} variant="danger" />
+              <StatCard label="Late" value={viewSummary.LATE} variant="warning" />
+              <StatCard label="Leave" value={viewSummary.LEAVE} variant="info" />
+            </StatGrid>
           )}
           <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left">Roll</th>
-                  <th className="px-4 py-2 text-left">Name</th>
-                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Roll</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {savedRecords.length === 0 ? (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No attendance marked for this date yet</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-10 text-center text-gray-500">No attendance marked for this date yet</td></tr>
                 ) : savedRecords.map((r) => (
                   <tr key={r.id} className="border-b border-gray-100">
-                    <td className="px-4 py-2 font-mono">{r.student?.rollNumber}</td>
-                    <td className="px-4 py-2">{r.student?.firstName} {r.student?.lastName}</td>
-                    <td className="px-4 py-2"><Badge variant={r.status === 'PRESENT' ? 'success' : r.status === 'ABSENT' ? 'danger' : 'default'}>{r.status}</Badge></td>
+                    <td className="px-4 py-3 font-mono text-xs">{r.student?.rollNumber}</td>
+                    <td className="px-4 py-3 font-medium">{r.student?.firstName} {r.student?.lastName}</td>
+                    <td className="px-4 py-3"><Badge variant={STATUS_STYLE[r.status] || 'default'}>{r.status}</Badge></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </>
+        </div>
+      )}
+
+      {(!sectionId || !subjectId) && (
+        <div className="mt-4"><EmptyState title="Select section and subject" message="Choose filters above to mark or view attendance." /></div>
       )}
     </>
   );

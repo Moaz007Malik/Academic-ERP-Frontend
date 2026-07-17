@@ -93,6 +93,12 @@ export default function StudentDetail() {
               { label: 'Class / Batch', value: batch?.name },
               { label: 'Section', value: section?.name },
               { label: 'Admission Date', value: s.enrollmentDate ? new Date(s.enrollmentDate).toLocaleDateString() : null },
+              { label: 'Original Registration Fee', value: s.assignedRegistrationFee != null ? `${Number(s.assignedRegistrationFee).toLocaleString()} PKR` : null },
+              { label: 'Registration Discount', value: Number(s.registrationDiscount) > 0 ? `${Number(s.registrationDiscount).toLocaleString()} PKR` : null },
+              { label: 'Payable Registration', value: s.assignedRegistrationFee != null ? `${Math.max(0, Number(s.assignedRegistrationFee) - Number(s.registrationDiscount || 0)).toLocaleString()} PKR` : null },
+              { label: 'Original Monthly Fee', value: s.assignedMonthlyFee != null ? `${Number(s.assignedMonthlyFee).toLocaleString()} PKR` : null },
+              { label: 'Monthly Discount', value: Number(s.monthlyDiscount) > 0 ? `${Number(s.monthlyDiscount).toLocaleString()} PKR` : null },
+              { label: 'Payable Monthly', value: s.assignedMonthlyFee != null ? `${Math.max(0, Number(s.assignedMonthlyFee) - Number(s.monthlyDiscount || 0)).toLocaleString()} PKR` : null },
             ]} />
             {s.promotions?.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm">
@@ -116,17 +122,34 @@ export default function StudentDetail() {
           </StatGrid>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead><tr className="border-b text-left text-xs uppercase text-gray-500"><th className="py-2">Structure</th><th>Amount</th><th>Due</th><th>Status</th><th>Receipt</th></tr></thead>
+              <thead>
+                <tr className="border-b text-left text-xs uppercase text-gray-500">
+                  <th className="py-2">Structure</th>
+                  <th>Original</th>
+                  <th>Discount</th>
+                  <th>Payable</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                  <th>Receipt</th>
+                </tr>
+              </thead>
               <tbody>
-                {profile.fees?.map((f) => (
-                  <tr key={f.id} className="border-b border-gray-100">
-                    <td className="py-2">{f.feeStructure?.name || '—'}</td>
-                    <td>{Number(f.amount).toLocaleString()} PKR</td>
-                    <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
-                    <td><Badge>{f.status}</Badge></td>
-                    <td className="font-mono text-xs">{f.receiptNumber || '—'}</td>
-                  </tr>
-                ))}
+                {profile.fees?.map((f) => {
+                  const original = Number(f.amount || 0);
+                  const discount = Number(f.discount || 0);
+                  const payable = Math.max(0, original + Number(f.fine || 0) - discount);
+                  return (
+                    <tr key={f.id} className="border-b border-gray-100">
+                      <td className="py-2">{f.feeStructure?.name || '—'}</td>
+                      <td>{original.toLocaleString()} PKR</td>
+                      <td>{discount > 0 ? `${discount.toLocaleString()} PKR` : '—'}</td>
+                      <td className="font-medium">{payable.toLocaleString()} PKR</td>
+                      <td>{f.dueDate ? new Date(f.dueDate).toLocaleDateString() : '—'}</td>
+                      <td><Badge variant={f.status === 'PAID' ? 'success' : 'warning'}>{f.status}</Badge></td>
+                      <td className="font-mono text-xs">{f.receiptNumber || '—'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {!profile.fees?.length && <EmptyState title="No fee records" />}

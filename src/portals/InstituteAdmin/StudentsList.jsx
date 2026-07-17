@@ -206,58 +206,90 @@ export default function StudentsList() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit Student' : 'Add Student'} wide>
-        <form onSubmit={handleSubmit} className="grid gap-3 sm:grid-cols-2">
-          {error && <p className="col-span-2 text-sm text-red-600">{error}</p>}
-          <Input label="First Name *" value={form.firstName || ''} onChange={(e) => set('firstName', e.target.value)} required />
-          <Input label="Last Name *" value={form.lastName || ''} onChange={(e) => set('lastName', e.target.value)} required />
-          <Input label="Roll Number" value={form.rollNumber || ''} onChange={(e) => set('rollNumber', e.target.value)} />
-          <Select label="Gender" value={form.gender || ''} onChange={(e) => set('gender', e.target.value)}>
-            <option value="">—</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-          </Select>
-          <Select label="Class/Batch" value={form.currentBatchId || ''} onChange={(e) => setBatch(e.target.value)}>
-            <option value="">Select class</option>
-            {structure.batches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.academicClass ? ` (${b.academicClass.name})` : ''}</option>)}
-          </Select>
-          <Select label="Section" value={form.currentSectionId || ''} onChange={(e) => set('currentSectionId', e.target.value)}>
-            <option value="">Select section</option>
-            {formSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </Select>
+        <form onSubmit={handleSubmit} className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">Personal Information</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label="First Name *" value={form.firstName || ''} onChange={(e) => set('firstName', e.target.value)} required />
+              <Input label="Last Name *" value={form.lastName || ''} onChange={(e) => set('lastName', e.target.value)} required />
+              <Input label="Date of Birth" type="date" value={form.dateOfBirth || ''} onChange={(e) => set('dateOfBirth', e.target.value)} />
+              <Select label="Gender" value={form.gender || ''} onChange={(e) => set('gender', e.target.value)}>
+                <option value="">—</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </Select>
+              <Input label="CNIC / B-Form" value={form.cnic || ''} onChange={(e) => set('cnic', e.target.value)} />
+              <Input label="Blood Group" value={form.bloodGroup || ''} onChange={(e) => set('bloodGroup', e.target.value)} />
+              <Input label="Photo URL" value={form.photo || ''} onChange={(e) => set('photo', e.target.value)} className="sm:col-span-2" />
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">Student Details</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label="Roll Number" value={form.rollNumber || ''} onChange={(e) => set('rollNumber', e.target.value)} />
+              <Input label="Admission Number" value={form.admissionNumber || ''} onChange={(e) => set('admissionNumber', e.target.value)} />
+              <Select label="Class/Batch" value={form.currentBatchId || ''} onChange={(e) => setBatch(e.target.value)}>
+                <option value="">Select class</option>
+                {structure.batches.map((b) => <option key={b.id} value={b.id}>{b.name}{b.academicClass ? ` (${b.academicClass.name})` : ''}</option>)}
+              </Select>
+              <Select label="Section" value={form.currentSectionId || ''} onChange={(e) => set('currentSectionId', e.target.value)}>
+                <option value="">Select section</option>
+                {formSections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Select>
+              {editId && (
+                <Select label="Status" value={form.status || 'ACTIVE'} onChange={(e) => set('status', e.target.value)}>
+                  {STATUS_OPTIONS.map((st) => <option key={st} value={st}>{st}</option>)}
+                </Select>
+              )}
+            </div>
+          </div>
           {!editId && feePreview && (
-            <div className="col-span-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
               <p className="mb-2 font-medium text-blue-900">Fees from class: {feePreview.className || '—'}</p>
               <div className="grid gap-2 sm:grid-cols-2">
-                <p>Registration Fee: <strong>{Number(feePreview.registrationFee).toLocaleString()} PKR</strong> (auto)</p>
-                <p>Monthly Fee: <strong>{Number(feePreview.monthlyFee).toLocaleString()} PKR</strong> (auto)</p>
+                <p>Registration Fee: <strong>{Number(feePreview.registrationFee).toLocaleString()} PKR</strong> (original)</p>
+                <p>Monthly Fee: <strong>{Number(feePreview.monthlyFee).toLocaleString()} PKR</strong> (original)</p>
                 <Input label="Registration Discount" type="number" value={form.registrationDiscount ?? 0}
                   onChange={(e) => set('registrationDiscount', e.target.value)} />
                 <Input label="Monthly Discount" type="number" value={form.monthlyDiscount ?? 0}
                   onChange={(e) => set('monthlyDiscount', e.target.value)} />
               </div>
               <p className="mt-2 text-xs text-blue-800">
-                Net payable — Registration: {Math.max(0, Number(feePreview.registrationFee) - Number(form.registrationDiscount || 0)).toLocaleString()} PKR
+                Final payable — Registration: {Math.max(0, Number(feePreview.registrationFee) - Number(form.registrationDiscount || 0)).toLocaleString()} PKR
                 · Monthly: {Math.max(0, Number(feePreview.monthlyFee) - Number(form.monthlyDiscount || 0)).toLocaleString()} PKR
               </p>
             </div>
           )}
-          {editId && (
-            <Select label="Status" value={form.status || 'ACTIVE'} onChange={(e) => set('status', e.target.value)}>
-              {STATUS_OPTIONS.map((st) => <option key={st} value={st}>{st}</option>)}
-            </Select>
-          )}
-          <Input label="Phone" value={form.phone || ''} onChange={(e) => set('phone', e.target.value)} />
-          <Input label="Guardian Name" value={form.guardianName || ''} onChange={(e) => set('guardianName', e.target.value)} />
-          <Input label="Guardian Phone" value={form.guardianPhone || ''} onChange={(e) => set('guardianPhone', e.target.value)} />
-          {!editId && (
-            <>
-              <Input label="Portal Email" type="email" value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
-              <Input label="Portal Password" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Default: Student@123" />
-            </>
-          )}
-          <div className="col-span-2">
-            <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Student' : 'Create Student'}</Button>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">Guardian / Father Information</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label="Father Name" value={form.fatherName || ''} onChange={(e) => set('fatherName', e.target.value)} />
+              <Input label="Mother Name" value={form.motherName || ''} onChange={(e) => set('motherName', e.target.value)} />
+              <Input label="Guardian Name" value={form.guardianName || ''} onChange={(e) => set('guardianName', e.target.value)} />
+              <Input label="Guardian Relation" value={form.guardianRelation || ''} onChange={(e) => set('guardianRelation', e.target.value)} />
+              <Input label="Guardian Phone" value={form.guardianPhone || ''} onChange={(e) => set('guardianPhone', e.target.value)} />
+              <Input label="Guardian Email" type="email" value={form.guardianEmail || ''} onChange={(e) => set('guardianEmail', e.target.value)} />
+            </div>
           </div>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">Contact & Address</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label="Phone" value={form.phone || ''} onChange={(e) => set('phone', e.target.value)} />
+              <Input label="Address" value={form.address || ''} onChange={(e) => set('address', e.target.value)} className="sm:col-span-2" />
+            </div>
+          </div>
+          {!editId && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-gray-800">Portal Access</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input label="Portal Email" type="email" value={form.email || ''} onChange={(e) => set('email', e.target.value)} />
+                <Input label="Portal Password" type="text" value={form.password || ''} onChange={(e) => set('password', e.target.value)} placeholder="Default: Student@123" />
+              </div>
+            </div>
+          )}
+          <Input label="Notes" value={form.notes || ''} onChange={(e) => set('notes', e.target.value)} />
+          <Button type="submit" disabled={submitting}>{submitting ? 'Saving...' : editId ? 'Update Student' : 'Create Student'}</Button>
         </form>
       </Modal>
 
